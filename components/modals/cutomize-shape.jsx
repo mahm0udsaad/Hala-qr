@@ -7,6 +7,7 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  Switch,
 } from "react-native";
 import ColorPicker, { Panel1, HueSlider } from "reanimated-color-picker";
 import Slider from "@react-native-community/slider";
@@ -20,11 +21,15 @@ const ShapeCustomizationModal = ({
   currentColor,
   currentRadius,
   currentShadow,
+  currentStrokeWidth,
+  currentFilled,
   onCustomize,
 }) => {
   const [backgroundColor, setBackgroundColor] = useState(currentColor);
   const [borderRadius, setBorderRadius] = useState(currentRadius);
   const [shadowType, setShadowType] = useState(currentShadow);
+  const [strokeWidth, setStrokeWidth] = useState(currentStrokeWidth);
+  const [isFilled, setIsFilled] = useState(currentFilled);
 
   const shadowOptions = [
     { type: "none", label: "No Shadow" },
@@ -41,25 +46,92 @@ const ShapeCustomizationModal = ({
       shapeColor: backgroundColor,
       borderRadius,
       shadowType,
+      strokeWidth,
+      isFilled,
     });
     onClose();
   };
 
   const renderPreview = () => {
-    const previewStyle = {
-      width: 150,
-      height: 150,
-      backgroundColor,
-      borderRadius: borderRadius,
+    const baseStyle = {
+      width: 100,
+      height: 100,
+      backgroundColor: isFilled ? backgroundColor : "transparent",
+      borderWidth: !isFilled ? strokeWidth : 0,
+      borderColor: !isFilled ? backgroundColor : "transparent",
       alignSelf: "center",
       marginBottom: 20,
       ...(shadowType === "outer" && styles.outerShadow),
       ...(shadowType === "inner" && styles.innerShadow),
     };
 
+    const getShapeStyle = () => {
+      switch (shapeType) {
+        case "circle":
+          return { borderRadius: 75 };
+        case "triangle":
+          return {
+            width: 0,
+            height: 0,
+            backgroundColor: "transparent",
+            borderStyle: "solid",
+            borderLeftWidth: 75,
+            borderRightWidth: 75,
+            borderBottomWidth: 150,
+            borderLeftColor: "transparent",
+            borderRightColor: "transparent",
+            borderBottomColor: backgroundColor,
+          };
+        case "pentagon":
+          return {
+            clipPath: "polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)",
+            borderRadius: borderRadius,
+          };
+        case "hexagon":
+          return {
+            clipPath:
+              "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)",
+            borderRadius: borderRadius,
+          };
+        case "star":
+          return {
+            clipPath:
+              "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+            borderRadius: borderRadius,
+          };
+        case "square":
+        default:
+          return { borderRadius: borderRadius };
+      }
+    };
+
     return (
       <View style={styles.previewContainer}>
-        <View style={previewStyle} />
+        <View style={[baseStyle, getShapeStyle()]} />
+      </View>
+    );
+  };
+
+  const renderBorderRadiusControl = () => {
+    // Only show border radius for shapes that make sense
+    const shapesWithBorderRadius = ["square", "pentagon", "hexagon", "star"];
+
+    if (!shapesWithBorderRadius.includes(shapeType)) {
+      return null;
+    }
+
+    return (
+      <View style={styles.optionSection}>
+        <Text style={styles.optionLabel}>Border Radius: {borderRadius}</Text>
+        <Slider
+          minimumValue={0}
+          maximumValue={100}
+          step={1}
+          value={borderRadius}
+          onValueChange={(value) => setBorderRadius(value)}
+          minimumTrackTintColor="#1E3A8A"
+          maximumTrackTintColor="#D1D5DB"
+        />
       </View>
     );
   };
@@ -73,33 +145,44 @@ const ShapeCustomizationModal = ({
     >
       <View style={styles.modalContainer}>
         <View style={styles.customizationModal}>
-          {/* Preview */}
           {renderPreview()}
 
-          {/* Background Color Picker */}
           <View style={styles.optionSection}>
-            <Text style={styles.optionLabel}>Background Color</Text>
+            <Text style={styles.optionLabel}>Fill Mode</Text>
+            <View style={styles.fillModeContainer}>
+              <Text>Stroke Only</Text>
+              <Switch value={isFilled} onValueChange={setIsFilled} />
+              <Text>Filled</Text>
+            </View>
+          </View>
+
+          {!isFilled && (
+            <View style={styles.optionSection}>
+              <Text style={styles.optionLabel}>
+                Stroke Width: {strokeWidth}
+              </Text>
+              <Slider
+                minimumValue={0.5}
+                maximumValue={10}
+                step={0.5}
+                value={strokeWidth}
+                onValueChange={setStrokeWidth}
+                minimumTrackTintColor="#1E3A8A"
+                maximumTrackTintColor="#D1D5DB"
+              />
+            </View>
+          )}
+
+          <View style={styles.optionSection}>
+            <Text style={styles.optionLabel}>Color</Text>
             <ColorPicker value={backgroundColor} onComplete={handleColorChange}>
               <Panel1 style={styles.colorPicker} />
               <HueSlider />
             </ColorPicker>
           </View>
 
-          {/* Border Radius Slider */}
-          <View style={styles.optionSection}>
-            <Text style={styles.optionLabel}>
-              Border Radius: {borderRadius.toFixed(0)}
-            </Text>
-            <Slider
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              value={borderRadius}
-              onValueChange={(value) => setBorderRadius(value)}
-              minimumTrackTintColor="#1E3A8A"
-              maximumTrackTintColor="#D1D5DB"
-            />
-          </View>
+          {/* Border Radius Slider (Conditionally Rendered) */}
+          {renderBorderRadiusControl()}
 
           {/* Shadow Type Selection */}
           <View style={styles.optionSection}>
@@ -140,6 +223,12 @@ const ShapeCustomizationModal = ({
 };
 
 const styles = StyleSheet.create({
+  fillModeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -159,10 +248,10 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   optionSection: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   optionLabel: {
     fontSize: 16,
@@ -172,6 +261,7 @@ const styles = StyleSheet.create({
   colorPicker: {
     width: "100%",
     height: 200,
+    marginBottom: 5,
   },
   shadowTypeContainer: {
     flexDirection: "row",

@@ -9,32 +9,34 @@ import {
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
-const contacts = [
-  {
-    id: 1,
-    name: "Mohammed Salem",
-    phone: "+91 9562830162",
-    avatar: "AL",
-    status: "going", // status can be "going", "not_going", or "waiting"
-  },
-  {
-    id: 2,
-    name: "Mohamed",
-    phone: "+91 8432156795",
-    avatar: "AJ",
-    status: "waiting",
-  },
-  {
-    id: 3,
-    name: "Mohammed Salem",
-    phone: "+91 9245631872",
-    avatar: "AD",
-    status: "not_going",
-  },
-];
+import { useStudio } from "../../../../../context";
 
 const PreviewScreen = () => {
+  const { state } = useStudio();
+  const { details, contacts } = state.invitation;
+  console.log(state.invitation.image);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "";
+    const date = new Date(timeString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   const getStatusIndicator = (status) => {
     switch (status) {
       case "going":
@@ -65,33 +67,47 @@ const PreviewScreen = () => {
       {/* Event Banner */}
       <View style={styles.bannerContainer}>
         <Image
-          source={require("@/assets/images/Card.png")}
+          source={{ uri: state.invitation.image }}
           style={styles.bannerImage}
           resizeMode="contain"
         />
 
-        <Pressable style={styles.editButton}>
-          <Text style={styles.editButtonText}>Edit Details</Text>
-        </Pressable>
+        <Link
+          href={{
+            pathname: "/add/templates/[id]/event-details",
+            params: { id: "current" },
+          }}
+          asChild
+        >
+          <Pressable style={styles.editButton}>
+            <Text style={styles.editButtonText}>Edit Details</Text>
+          </Pressable>
+        </Link>
       </View>
 
       {/* Event Details */}
       <View style={styles.eventDetailsContainer}>
-        <Text style={styles.eventTitle}>Family Get-Together</Text>
+        <Text style={styles.eventTitle}>
+          {details.title || "Untitled Event"}
+        </Text>
 
         {/* Date and Time */}
         <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateTimeText}>📅 Wednesday, 6 Dec 2023</Text>
+          <Text style={styles.dateTimeText}>
+            📅 {formatDate(details.startDate)}
+          </Text>
         </View>
         <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateTimeText}>⏰ 11:30 am – 5:00 pm</Text>
+          <Text style={styles.dateTimeText}>
+            ⏰ {formatTime(details.startTime)} – {formatTime(details.endTime)}
+          </Text>
         </View>
         <Text style={styles.addToCalendarText}>+ Add to Calendar</Text>
 
         {/* Location */}
         <View style={styles.locationContainer}>
           <Text style={styles.locationText}>
-            📍 "A5 Villa", Kent Nalukettu, Kochi, Kerala
+            📍 {details.location || "Location not specified"}
           </Text>
         </View>
 
@@ -110,57 +126,64 @@ const PreviewScreen = () => {
       {/* Hosted By */}
       <View style={styles.hostedByContainer}>
         <Text style={styles.sectionTitle}>Hosted By</Text>
-        <Text style={styles.hostedByText}>Hussain Hajjaj</Text>
+        <Text style={styles.hostedByText}>
+          {details.hostedBy || "Not specified"}
+        </Text>
       </View>
 
       {/* Event Description */}
       <View style={styles.descriptionContainer}>
         <Text style={styles.sectionTitle}>Event Description</Text>
         <Text style={styles.descriptionText}>
-          Join us for a joyful celebration of faith, family, and fellowship...
+          {details.description || "No description provided"}
         </Text>
       </View>
 
       {/* Guest List */}
-      <View style={styles.guestListContainer}>
-        <View style={styles.addContactButtonContainer}>
-          <Link
-            href="/add/templates/[id]/add-contacts"
-            style={styles.addContactButton}
-          >
-            <Ionicons name="person-add-outline" size={20} color="#009CDE" />
-          </Link>
-        </View>
-        <Text style={styles.sectionTitle}>Guest List</Text>
+      {!details.hideGuestList && (
+        <View style={styles.guestListContainer}>
+          <View style={styles.addContactButtonContainer}>
+            <Link
+              href={{
+                pathname: "/add/templates/[id]/add-contacts",
+                params: { id: "current" },
+              }}
+              style={styles.addContactButton}
+            >
+              <Ionicons name="person-add-outline" size={20} color="#009CDE" />
+            </Link>
+          </View>
+          <Text style={styles.sectionTitle}>Guest List</Text>
 
-        {contacts.map((contact) => {
-          const { color, label } = getStatusIndicator(contact.status);
-          return (
-            <View key={contact.id} style={styles.contactItemContainer}>
-              <View style={styles.contactInfoContainer}>
-                {/* Display avatar (initials) */}
-                <View style={styles.avatarContainer}>
-                  <Text style={styles.avatarText}>{contact.avatar}</Text>
+          {(contacts || []).map((contact) => {
+            const { color, label } = getStatusIndicator(contact.status);
+            return (
+              <View key={contact.id} style={styles.contactItemContainer}>
+                <View style={styles.contactInfoContainer}>
+                  <View style={styles.avatarContainer}>
+                    <Text style={styles.avatarText}>
+                      {contact.avatar || contact.name.slice(0, 2).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.contactName}>{contact.name}</Text>
+                    <Text style={styles.contactPhone}>{contact.phone}</Text>
+                  </View>
                 </View>
-                {/* Contact name and phone */}
-                <View>
-                  <Text style={styles.contactName}>{contact.name}</Text>
-                  <Text style={styles.contactPhone}>{contact.phone}</Text>
+                <View style={styles.statusContainer}>
+                  <Text style={color}>{label}</Text>
                 </View>
               </View>
-              {/* Status Indicator */}
-              <View style={styles.statusContainer}>
-                <Text style={color}>{label}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
+            );
+          })}
+        </View>
+      )}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  // ... (styles remain the same as in your original code)
   container: {
     flex: 1,
     backgroundColor: "white",

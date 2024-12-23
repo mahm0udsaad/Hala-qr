@@ -1,132 +1,137 @@
 import React, { useState, useRef, useCallback } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
-  PanResponder,
   Animated,
+  PanResponder,
 } from "react-native";
 import {
   Trash2,
   EllipsisVertical,
   Minimize2,
   Maximize2,
+  Square,
+  Circle,
+  Triangle,
+  Pentagon,
+  Hexagon,
+  Star,
+  Heart,
+  Diamond,
+  Octagon,
 } from "lucide-react-native";
 import ShapeCustomizationModal from "./modals/cutomize-shape";
-
-const { width, height } = Dimensions.get("window");
+import { useStudio } from "../context";
 
 const ShapeElement = ({
   type,
   onDelete,
-  initialX = width / 2,
-  initialY = height / 2,
+  initialX,
+  initialY,
   shapeColor = "#1E3A8A",
   initialSize = 100,
+  id,
+  showControls,
+  isFilled,
+  strokeWidth,
 }) => {
+  const {
+    toggleElementControls,
+    updateElementPosition,
+    customizeShape,
+    updateShapeSize,
+  } = useStudio();
   const pan = useRef(
     new Animated.ValueXY({ x: initialX, y: initialY }),
   ).current;
-
   const [size, setSize] = useState(initialSize);
-  const [showControls, setShowControls] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-
-  // New state for customization
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
   const [currentColor, setCurrentColor] = useState(shapeColor);
-  const [borderRadius, setBorderRadius] = useState(type === "circle" ? 100 : 8);
-  const [shadowType, setShadowType] = useState("none");
 
   const handleToggleControls = useCallback(() => {
-    setShowControls((prev) => !prev);
+    toggleElementControls("shape", id);
   }, []);
 
   const handleIncreaseSize = () => {
-    setSize((prevSize) => prevSize + 10);
+    const newSize = size + 10;
+    setSize(newSize);
+    updateShapeSize(id, newSize);
   };
 
   const handleDecreaseSize = () => {
-    setSize((prevSize) => Math.max(30, prevSize - 10));
+    const newSize = Math.max(30, size - 10);
+    setSize(newSize);
+    updateShapeSize(id, newSize);
   };
 
-  const handleCustomize = ({ shapeColor, borderRadius, shadowType }) => {
+  const handleCustomize = ({ shapeColor, strokeWidth, isFilled }) => {
     setCurrentColor(shapeColor);
-    setBorderRadius(borderRadius);
-    setShadowType(shadowType);
+    customizeShape(id, shapeColor, strokeWidth, isFilled);
   };
-  // Drag Responder
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: () => !isResizing,
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        if (!isResizing) {
-          pan.setOffset({ x: pan.x._value, y: pan.y._value });
-          pan.setValue({ x: 0, y: 0 });
-        }
+        pan.setOffset({ x: pan.x._value, y: pan.y._value });
+        pan.setValue({ x: 0, y: 0 });
       },
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
         useNativeDriver: false,
       }),
       onPanResponderRelease: () => {
-        if (!isResizing) {
-          pan.flattenOffset();
-        }
+        pan.flattenOffset();
+        updateElementPosition("shape", id, pan.x._value, pan.y._value);
       },
     }),
   ).current;
 
-  // Resize Responder
-  const resizeResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        setIsResizing(true);
-      },
-      onPanResponderMove: (event, gestureState) => {
-        // Calculate resize based on vertical movement
-        const newSize = Math.max(30, size + gestureState.dy);
-        setSize(newSize);
-      },
-      onPanResponderRelease: () => {
-        setIsResizing(false);
-      },
-    }),
-  ).current;
-
-  const animatedStyle = {
-    transform: [{ translateX: pan.x }, { translateY: pan.y }],
-  };
-
-  const renderShape = () => {
-    const shapeStyle = [
-      type === "square" ? styles.square : styles.circle,
-      {
-        width: size,
-        height: size,
-        backgroundColor: currentColor,
-        borderRadius: type === "circle" ? 100 : borderRadius,
-        ...(shadowType === "outer" && styles.outerShadow),
-        ...(shadowType === "inner" && styles.innerShadow),
-      },
-    ];
-
-    return <View style={shapeStyle} />;
+  const getShapeIcon = () => {
+    const props = {
+      size,
+      color: currentColor,
+      strokeWidth: !isFilled ? strokeWidth : 1.5,
+      fill: isFilled ? currentColor : "none",
+    };
+    switch (type) {
+      case "square":
+        return <Square {...props} />;
+      case "circle":
+        return <Circle {...props} />;
+      case "triangle":
+        return <Triangle {...props} />;
+      case "pentagon":
+        return <Pentagon {...props} />;
+      case "hexagon":
+        return <Hexagon {...props} />;
+      case "star":
+        return <Star {...props} />;
+      case "heart":
+        return <Heart {...props} />;
+      case "diamond":
+        return <Diamond {...props} />;
+      case "octagon":
+        return <Octagon {...props} />;
+      default:
+        return <Square {...props} />;
+    }
   };
 
   return (
     <>
       <Animated.View
-        style={[styles.shapeContainer, animatedStyle]}
+        style={[
+          styles.shapeContainer,
+          { transform: pan.getTranslateTransform() },
+        ]}
         {...panResponder.panHandlers}
       >
         <TouchableOpacity
           onPress={handleToggleControls}
           style={styles.shapeWrapper}
         >
-          {renderShape()}
+          {getShapeIcon()}
         </TouchableOpacity>
 
         {showControls && (
@@ -140,20 +145,16 @@ const ShapeElement = ({
             <TouchableOpacity
               onPress={handleDecreaseSize}
               style={styles.resizeButton}
-              {...resizeResponder.panHandlers}
             >
               <Minimize2 size={18} color="#1E3A8A" />
             </TouchableOpacity>
-            <Text style={styles.separator}>|</Text>
             <TouchableOpacity
               onPress={handleIncreaseSize}
               style={styles.resizeButton}
-              {...resizeResponder.panHandlers}
             >
               <Maximize2 size={18} color="#1E3A8A" />
             </TouchableOpacity>
-            <Text style={styles.separator}>|</Text>
-            <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+            <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
               <Trash2 size={18} color="#FF0000" />
             </TouchableOpacity>
           </View>
@@ -164,8 +165,6 @@ const ShapeElement = ({
         onClose={() => setShowCustomizationModal(false)}
         shapeType={type}
         currentColor={currentColor}
-        currentRadius={borderRadius}
-        currentShadow={shadowType}
         onCustomize={handleCustomize}
       />
     </>
@@ -173,38 +172,12 @@ const ShapeElement = ({
 };
 
 const styles = StyleSheet.create({
-  controlButton: {
-    padding: 4,
-  },
-  outerShadow: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  innerShadow: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
-  },
   shapeContainer: {
     position: "absolute",
     alignSelf: "flex-start",
   },
   shapeWrapper: {
     padding: 8,
-    borderRadius: 8,
-  },
-  square: {
-    borderRadius: 8,
-  },
-  circle: {
-    borderRadius: "100%",
   },
   controlButtons: {
     flexDirection: "row",
@@ -220,16 +193,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  controlButton: {
+    padding: 4,
+  },
   resizeButton: {
     padding: 4,
   },
   deleteButton: {
     padding: 4,
-  },
-  separator: {
-    marginHorizontal: 4,
-    color: "#D1D5DB",
-    fontSize: 20,
   },
 });
 

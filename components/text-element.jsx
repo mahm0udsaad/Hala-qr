@@ -13,6 +13,7 @@ import {
 import { Trash2, Edit2, EllipsisVertical } from "lucide-react-native";
 import ColorPicker, { HueSlider, Panel1 } from "reanimated-color-picker";
 import Slider from "@react-native-community/slider";
+import { useStudio } from "../context";
 
 const { width, height } = Dimensions.get("window");
 
@@ -49,14 +50,27 @@ const TextElement = ({
   fontFamily = "system",
   onColorChange,
   onStyleChange,
+  showControls,
+  id,
 }) => {
+  const { toggleElementControls, updateElementPosition } = useStudio();
+
   const pan = useRef(
     new Animated.ValueXY({ x: initialX, y: initialY }),
   ).current;
-  const [showControls, setShowControls] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+  // Store temporary style changes
+  const [tempStyles, setTempStyles] = useState({
+    textColor,
+    backgroundColor,
+    fontSize,
+    fontWeight,
+    fontFamily,
+  });
+
   const handleToggleControls = useCallback(() => {
-    setShowControls((prev) => !prev);
+    toggleElementControls("text", id);
   }, []);
 
   const panResponder = useRef(
@@ -71,6 +85,10 @@ const TextElement = ({
       }),
       onPanResponderRelease: () => {
         pan.flattenOffset();
+        // Calculate new position and update in context
+        const newX = pan.x._value;
+        const newY = pan.y._value;
+        updateElementPosition("text", id, newX, newY);
       },
     }),
   ).current;
@@ -81,6 +99,32 @@ const TextElement = ({
 
   const truncatedText = text.length > 30 ? text.substring(0, 30) + "..." : text;
 
+  const handleStyleChange = (newStyle) => {
+    // Update temporary styles
+    setTempStyles((prev) => ({
+      ...prev,
+      ...newStyle,
+    }));
+  };
+
+  const handleDone = () => {
+    // Apply all temporary styles at once when "Done" is pressed
+    onStyleChange(tempStyles);
+    setShowMoreOptions(false);
+  };
+
+  const handleCancel = () => {
+    // Reset temporary styles to original values
+    setTempStyles({
+      textColor,
+      backgroundColor,
+      fontSize,
+      fontWeight,
+      fontFamily,
+    });
+    setShowMoreOptions(false);
+  };
+
   return (
     <>
       <Animated.View
@@ -89,16 +133,19 @@ const TextElement = ({
       >
         <TouchableOpacity
           onPress={handleToggleControls}
-          style={[styles.textWrapper, { backgroundColor }]}
+          style={styles.textWrapper}
         >
           <Text
             style={[
               styles.text,
               {
-                color: textColor,
-                fontSize,
-                fontWeight,
-                fontFamily: fontFamily === "system" ? undefined : fontFamily,
+                color: tempStyles.textColor,
+                fontSize: tempStyles.fontSize,
+                fontWeight: tempStyles.fontWeight,
+                fontFamily:
+                  tempStyles.fontFamily === "system"
+                    ? undefined
+                    : tempStyles.fontFamily,
               },
             ]}
           >
@@ -130,7 +177,7 @@ const TextElement = ({
         visible={showMoreOptions}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowMoreOptions(false)}
+        onRequestClose={handleCancel}
       >
         <View style={styles.modalContainer}>
           <View style={styles.moreOptionsModal}>
@@ -140,12 +187,14 @@ const TextElement = ({
                 style={[
                   styles.previewText,
                   {
-                    color: textColor,
-                    backgroundColor,
-                    fontSize,
-                    fontWeight,
+                    color: tempStyles.textColor,
+                    backgroundColor: tempStyles.backgroundColor,
+                    fontSize: tempStyles.fontSize,
+                    fontWeight: tempStyles.fontWeight,
                     fontFamily:
-                      fontFamily === "system" ? undefined : fontFamily,
+                      tempStyles.fontFamily === "system"
+                        ? undefined
+                        : tempStyles.fontFamily,
                   },
                 ]}
               >
@@ -154,50 +203,32 @@ const TextElement = ({
             </View>
 
             {/* Text Color Picker */}
-            <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
-              <View style={styles.colorOptionSection}>
-                <Text style={styles.optionLabel}>Text Color</Text>
-                <ColorPicker
-                  value={textColor}
-                  onComplete={(color) =>
-                    onColorChange({
-                      textColor: color.hex,
-                    })
-                  }
-                >
-                  <Panel1 style={styles.colorPicker} />
-                  <HueSlider />
-                </ColorPicker>
-              </View>
-
-              {/* Background Color Picker */}
-              <View style={styles.colorOptionSection}>
-                <Text style={styles.optionLabel}>Background Color</Text>
-                <ColorPicker
-                  value={backgroundColor}
-                  onComplete={(color) =>
-                    onColorChange({
-                      backgroundColor: color.hex,
-                    })
-                  }
-                >
-                  <Panel1 style={styles.colorPicker} />
-                  <HueSlider />
-                </ColorPicker>
-              </View>
+            <View style={styles.optionSection}>
+              <Text style={styles.optionLabel}>Text Color</Text>
+              <ColorPicker
+                value={tempStyles.textColor}
+                onComplete={(color) => {
+                  handleStyleChange({ textColor: color.hex });
+                }}
+              >
+                <Panel1 style={styles.colorPicker} />
+                <HueSlider />
+              </ColorPicker>
             </View>
 
             {/* Font Size Slider */}
             <View style={styles.optionSection}>
               <Text style={styles.optionLabel}>
-                Font Size: {fontSize.toFixed(0)}
+                Font Size: {tempStyles.fontSize.toFixed(0)}
               </Text>
               <Slider
                 minimumValue={12}
                 maximumValue={36}
-                step={1}
-                value={fontSize}
-                onValueChange={(value) => onStyleChange({ fontSize: value })}
+                step={3}
+                value={tempStyles.fontSize}
+                onValueChange={(value) =>
+                  handleStyleChange({ fontSize: value })
+                }
                 minimumTrackTintColor="#1E3A8A"
                 maximumTrackTintColor="#D1D5DB"
               />
@@ -216,9 +247,12 @@ const TextElement = ({
                     key={option.weight}
                     style={[
                       styles.fontWeightButton,
-                      fontWeight === option.weight && styles.selectedFontWeight,
+                      tempStyles.fontWeight === option.weight &&
+                        styles.selectedFontWeight,
                     ]}
-                    onPress={() => onStyleChange({ fontWeight: option.weight })}
+                    onPress={() =>
+                      handleStyleChange({ fontWeight: option.weight })
+                    }
                   >
                     <Text style={{ fontWeight: option.weight }}>
                       {option.label}
@@ -241,9 +275,12 @@ const TextElement = ({
                     key={option.font}
                     style={[
                       styles.fontWeightButton,
-                      fontFamily === option.font && styles.selectedFontWeight,
+                      tempStyles.fontFamily === option.font &&
+                        styles.selectedFontWeight,
                     ]}
-                    onPress={() => onStyleChange({ fontFamily: option.font })}
+                    onPress={() =>
+                      handleStyleChange({ fontFamily: option.font })
+                    }
                   >
                     <Text style={{ fontFamily: option.font }}>
                       {option.label}
@@ -257,13 +294,13 @@ const TextElement = ({
             <View style={styles.editModalButtons}>
               <TouchableOpacity
                 style={styles.editModalCancel}
-                onPress={() => setShowMoreOptions(false)}
+                onPress={handleCancel}
               >
                 <Text style={styles.editModalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.editModalDone}
-                onPress={() => setShowMoreOptions(false)}
+                onPress={handleDone}
               >
                 <Text style={styles.editModalButtonText}>Done</Text>
               </TouchableOpacity>
@@ -274,7 +311,6 @@ const TextElement = ({
     </>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -293,9 +329,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   textWrapper: {
-    backgroundColor: "rgba(30, 58, 138, 0.1)",
     padding: 8,
-    borderRadius: 8,
   },
   text: {
     fontSize: 16,

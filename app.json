@@ -9,9 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "This app requires access to your contacts to import them for app usage.",
+        "NSPhotoLibraryAddUsageDescription": "This app requires access to save images to your photo library."
+      }
     },
     "android": {
+      "permissions": ["READ_CONTACTS", "WRITE_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
