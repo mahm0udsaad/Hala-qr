@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "expo-dom",
-    "slug": "expo-dom",
-    "version": "1.0.0",
+    "name": "Halaqrv2",
+    "slug": "Halaqrv2",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -13,18 +13,20 @@
       "infoPlist": {
         "NSContactsUsageDescription": "This app requires access to your contacts to import them for app usage.",
         "NSPhotoLibraryAddUsageDescription": "This app requires access to save images to your photo library."
-      }
+      },
+      "bundleIdentifier": "com.Halaqrv2.Halaqrv2"
     },
     "android": {
       "permissions": ["READ_CONTACTS", "WRITE_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.Halaqrv2.Halaqrv2"
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -32,7 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -42,6 +44,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "e51a113e-ed3d-41f0-bd8a-2b06fb0669e5"
+      }
     }
   }
 }

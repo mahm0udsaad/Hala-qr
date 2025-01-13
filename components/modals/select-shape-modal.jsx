@@ -7,8 +7,8 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
+import { ChevronRight } from "lucide-react-native";
 import {
-  ChevronRight,
   Square,
   Circle,
   Triangle,
@@ -18,15 +18,13 @@ import {
   Heart,
   Diamond,
   Octagon,
-} from "lucide-react-native";
+} from "./../icons";
+import { useStudio } from "../../context";
 
-const ShapeSelectionModal = ({
-  visible,
-  onClose,
-  selectedShapeType,
-  onSelectShape,
-  onAddShape,
-}) => {
+const ShapeSelectionModal = ({ visible, onClose }) => {
+  const { addShape } = useStudio();
+  const [selectedShapeType, setSelectedShapeType] = React.useState(null);
+
   const shapes = [
     { type: "square", Icon: Square },
     { type: "circle", Icon: Circle },
@@ -38,6 +36,19 @@ const ShapeSelectionModal = ({
     { type: "diamond", Icon: Diamond },
     { type: "octagon", Icon: Octagon },
   ];
+
+  const handleAddShape = () => {
+    if (selectedShapeType) {
+      addShape({
+        type: selectedShapeType,
+        color: "#1E3A8A",
+        isFilled: true,
+        strokeWidth: 1,
+      });
+      onClose();
+      setSelectedShapeType(null);
+    }
+  };
 
   return (
     <Modal
@@ -63,12 +74,9 @@ const ShapeSelectionModal = ({
                     styles.shapeButton,
                     selectedShapeType === type && styles.selectedShape,
                   ]}
-                  onPress={() => onSelectShape(type)}
+                  onPress={() => setSelectedShapeType(type)}
                 >
-                  <Icon size={48} color="#1E3A8A" fill="#1E3A8A" />
-                  <Text style={styles.shapeText}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </Text>
+                  <Icon size={80} color="#1E3A8A" fill="#1E3A8A" />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -83,7 +91,7 @@ const ShapeSelectionModal = ({
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.editModalDone}
-              onPress={onAddShape}
+              onPress={handleAddShape}
               disabled={!selectedShapeType}
             >
               <Text style={styles.editModalButtonText}>Add Shape</Text>
@@ -113,10 +121,10 @@ const styles = StyleSheet.create({
   scrollIndicator: {
     position: "absolute",
     right: 0,
-    top: "50%",
+    top: "40%",
     transform: [{ translateY: -12 }],
     backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 12,
+    borderRadius: 5,
     padding: 4,
   },
   editModalButtons: {

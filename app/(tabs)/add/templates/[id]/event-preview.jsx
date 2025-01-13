@@ -7,14 +7,14 @@ import {
   Pressable,
   StyleSheet,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStudio } from "../../../../../context";
 
 const PreviewScreen = () => {
   const { state } = useStudio();
   const { details, contacts } = state.invitation;
-  console.log(state.invitation.image);
+  console.log(state.invitation);
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -67,7 +67,7 @@ const PreviewScreen = () => {
       {/* Event Banner */}
       <View style={styles.bannerContainer}>
         <Image
-          source={{ uri: state.invitation.image }}
+          src={state.invitation.image}
           style={styles.bannerImage}
           resizeMode="contain"
         />

@@ -1,13 +1,15 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import ColorPicker, { HueSlider, Panel1 } from "reanimated-color-picker";
+import { useStudio } from "../../context";
 
-const BackgroundColorModal = ({
-  visible,
-  onClose,
-  currentColor,
-  onColorChange,
-}) => {
+const BackgroundColorModal = ({ visible, onClose }) => {
+  const { state, setCanvasBackground } = useStudio();
+
+  const handleColorChange = (color) => {
+    setCanvasBackground(color.hex);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -19,14 +21,17 @@ const BackgroundColorModal = ({
         <View style={styles.modal}>
           <Text style={styles.title}>Select Canvas Background</Text>
 
-          <ColorPicker value={currentColor} onComplete={onColorChange}>
+          <ColorPicker
+            value={state.canvasBackground}
+            onComplete={handleColorChange}
+          >
             <Panel1 style={styles.colorPicker} />
             <HueSlider />
           </ColorPicker>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.buttonText}>Cancel</Text>
+              <Text style={[styles.buttonText, styles.cancelText]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.doneButton} onPress={onClose}>
               <Text style={styles.buttonText}>Done</Text>

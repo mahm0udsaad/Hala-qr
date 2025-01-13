@@ -1,31 +1,33 @@
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  ImageBackground,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { View, StyleSheet, ImageBackground } from "react-native";
 import TextElement from "./text-element";
 import ShapeElement from "./shape-element";
+import { useStudio } from "../context";
+import ImageElement from "./imageELement";
 
-const Canvas = ({
-  textElements,
-  shapeElements,
-  backgroundColor,
-  backgroundImage,
-  onDeleteText,
-  onEditText,
-  onTextColorChange,
-  onTextStyleChange,
-  onDeleteShape,
-  hideAllElementControls,
-}) => {
-  const handleCanvasTouch = () => {
-    hideAllElementControls();
-  };
+const Canvas = () => {
+  const { state } = useStudio();
+  const {
+    textElements,
+    shapeElements,
+    imageElements,
+    canvasBackground: backgroundColor,
+    backgroundImage,
+  } = state;
 
   const CanvasContent = () => (
     <>
+      {imageElements?.map((img) => (
+        <ImageElement
+          key={img.id}
+          initialX={img.x}
+          initialY={img.y}
+          initialSize={img.size}
+          src={img.src}
+          id={img.id}
+          showControls={img.showControls}
+        />
+      ))}
       {textElements.map((textEl) => (
         <TextElement
           key={textEl.id}
@@ -39,10 +41,6 @@ const Canvas = ({
           fontWeight={textEl.fontWeight}
           fontFamily={textEl.fontFamily}
           showControls={textEl.showControls}
-          onDelete={() => onDeleteText(textEl.id)}
-          onEdit={() => onEditText(textEl.id)}
-          onColorChange={(colors) => onTextColorChange(textEl.id, colors)}
-          onStyleChange={(styles) => onTextStyleChange(textEl.id, styles)}
         />
       ))}
       {shapeElements.map((shapeEl) => (
@@ -55,7 +53,6 @@ const Canvas = ({
           initialY={shapeEl.y}
           initialSize={shapeEl.size}
           showControls={shapeEl.showControls}
-          onDelete={() => onDeleteShape(shapeEl.id)}
           isFilled={shapeEl.isFilled}
           strokeWidth={shapeEl.strokeWidth}
         />
@@ -64,7 +61,7 @@ const Canvas = ({
   );
 
   return (
-    <TouchableWithoutFeedback onPress={handleCanvasTouch}>
+    <>
       {backgroundImage ? (
         <ImageBackground
           collapsable={false}
@@ -79,7 +76,7 @@ const Canvas = ({
           <CanvasContent />
         </View>
       )}
-    </TouchableWithoutFeedback>
+    </>
   );
 };
 

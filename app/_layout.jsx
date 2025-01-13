@@ -2,7 +2,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
-import { View, Dimensions } from "react-native";
+import { View, Dimensions, StatusBar } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomOnboarding from "@/components/onboard";
 import { Video, ResizeMode } from "expo-av";
@@ -22,7 +22,7 @@ export default function RootLayout() {
   const [videoIsFinished, setVideoIsFinished] = useState(false);
   const [videoLayout, setVideoLayout] = useState({
     width: Dimensions.get("window").width,
-    height: Dimensions.get("window").width * (16 / 9), // Assuming 16:9 video, adjust ratio based on your video
+    height: Dimensions.get("window").width * (16 / 9),
   });
 
   const [fontsLoaded, fontError] = useFonts({
@@ -87,6 +87,12 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1 }}>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
+
       {hasSeenOnboarding ? (
         <I18nextProvider i18n={i18n}>
           <RootLayoutNav />

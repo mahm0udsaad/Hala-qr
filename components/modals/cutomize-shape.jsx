@@ -5,13 +5,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  ScrollView,
   Dimensions,
   Switch,
 } from "react-native";
 import ColorPicker, { Panel1, HueSlider } from "reanimated-color-picker";
 import Slider from "@react-native-community/slider";
-
+import {
+  Square,
+  Circle,
+  Triangle,
+  Pentagon,
+  Hexagon,
+  Star,
+  Heart,
+  Diamond,
+  Octagon,
+} from "./../icons";
+import { CircleIcon } from "lucide-react-native";
 const { width } = Dimensions.get("window");
 
 const ShapeCustomizationModal = ({
@@ -19,23 +29,13 @@ const ShapeCustomizationModal = ({
   onClose,
   shapeType,
   currentColor,
-  currentRadius,
-  currentShadow,
   currentStrokeWidth,
   currentFilled,
   onCustomize,
 }) => {
   const [backgroundColor, setBackgroundColor] = useState(currentColor);
-  const [borderRadius, setBorderRadius] = useState(currentRadius);
-  const [shadowType, setShadowType] = useState(currentShadow);
   const [strokeWidth, setStrokeWidth] = useState(currentStrokeWidth);
   const [isFilled, setIsFilled] = useState(currentFilled);
-
-  const shadowOptions = [
-    { type: "none", label: "No Shadow" },
-    { type: "inner", label: "Inner Shadow" },
-    { type: "outer", label: "Outer Shadow" },
-  ];
 
   const handleColorChange = (color) => {
     setBackgroundColor(color.hex);
@@ -44,8 +44,6 @@ const ShapeCustomizationModal = ({
   const handleSave = () => {
     onCustomize({
       shapeColor: backgroundColor,
-      borderRadius,
-      shadowType,
       strokeWidth,
       isFilled,
     });
@@ -53,85 +51,28 @@ const ShapeCustomizationModal = ({
   };
 
   const renderPreview = () => {
-    const baseStyle = {
-      width: 100,
-      height: 100,
-      backgroundColor: isFilled ? backgroundColor : "transparent",
-      borderWidth: !isFilled ? strokeWidth : 0,
-      borderColor: !isFilled ? backgroundColor : "transparent",
-      alignSelf: "center",
-      marginBottom: 20,
-      ...(shadowType === "outer" && styles.outerShadow),
-      ...(shadowType === "inner" && styles.innerShadow),
+    const props = {
+      color: currentColor,
+      strokeWidth: strokeWidth,
+      fill: isFilled,
     };
 
-    const getShapeStyle = () => {
-      switch (shapeType) {
-        case "circle":
-          return { borderRadius: 75 };
-        case "triangle":
-          return {
-            width: 0,
-            height: 0,
-            backgroundColor: "transparent",
-            borderStyle: "solid",
-            borderLeftWidth: 75,
-            borderRightWidth: 75,
-            borderBottomWidth: 150,
-            borderLeftColor: "transparent",
-            borderRightColor: "transparent",
-            borderBottomColor: backgroundColor,
-          };
-        case "pentagon":
-          return {
-            clipPath: "polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)",
-            borderRadius: borderRadius,
-          };
-        case "hexagon":
-          return {
-            clipPath:
-              "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)",
-            borderRadius: borderRadius,
-          };
-        case "star":
-          return {
-            clipPath:
-              "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
-            borderRadius: borderRadius,
-          };
-        case "square":
-        default:
-          return { borderRadius: borderRadius };
-      }
+    const shapes = {
+      square: Square,
+      circle: Circle,
+      triangle: Triangle,
+      pentagon: Pentagon,
+      hexagon: Hexagon,
+      star: Star,
+      heart: Heart,
+      diamond: Diamond,
+      octagon: Octagon,
     };
 
+    const ShapeComponent = shapes[shapeType] || Square;
     return (
       <View style={styles.previewContainer}>
-        <View style={[baseStyle, getShapeStyle()]} />
-      </View>
-    );
-  };
-
-  const renderBorderRadiusControl = () => {
-    // Only show border radius for shapes that make sense
-    const shapesWithBorderRadius = ["square", "pentagon", "hexagon", "star"];
-
-    if (!shapesWithBorderRadius.includes(shapeType)) {
-      return null;
-    }
-
-    return (
-      <View style={styles.optionSection}>
-        <Text style={styles.optionLabel}>Border Radius: {borderRadius}</Text>
-        <Slider
-          minimumValue={0}
-          maximumValue={100}
-          step={1}
-          value={borderRadius}
-          onValueChange={(value) => setBorderRadius(value)}
-          minimumTrackTintColor="#1E3A8A"
-          maximumTrackTintColor="#D1D5DB"
-        />
+        <ShapeComponent {...props} />
       </View>
     );
   };
@@ -150,9 +91,30 @@ const ShapeCustomizationModal = ({
           <View style={styles.optionSection}>
             <Text style={styles.optionLabel}>Fill Mode</Text>
             <View style={styles.fillModeContainer}>
-              <Text>Stroke Only</Text>
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 5,
+                  alignItems: "center",
+                }}
+              >
+                <Text>Outlined</Text>
+                <CircleIcon stroke={"#1E3A8A"} size={20} />
+              </View>
               <Switch value={isFilled} onValueChange={setIsFilled} />
-              <Text>Filled</Text>
+
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Text>Filled</Text>
+                <CircleIcon fill={"#1E3A8A"} size={20} />
+              </View>
             </View>
           </View>
 
@@ -162,9 +124,9 @@ const ShapeCustomizationModal = ({
                 Stroke Width: {strokeWidth}
               </Text>
               <Slider
-                minimumValue={0.5}
+                minimumValue={1}
                 maximumValue={10}
-                step={0.5}
+                step={1}
                 value={strokeWidth}
                 onValueChange={setStrokeWidth}
                 minimumTrackTintColor="#1E3A8A"
@@ -179,32 +141,6 @@ const ShapeCustomizationModal = ({
               <Panel1 style={styles.colorPicker} />
               <HueSlider />
             </ColorPicker>
-          </View>
-
-          {/* Border Radius Slider (Conditionally Rendered) */}
-          {renderBorderRadiusControl()}
-
-          {/* Shadow Type Selection */}
-          <View style={styles.optionSection}>
-            <Text style={styles.optionLabel}>Shadow Type</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.shadowTypeContainer}
-            >
-              {shadowOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.type}
-                  style={[
-                    styles.shadowTypeButton,
-                    shadowType === option.type && styles.selectedShadowType,
-                  ]}
-                  onPress={() => setShadowType(option.type)}
-                >
-                  <Text>{option.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
           </View>
 
           {/* Modal Buttons */}

@@ -1,4 +1,3 @@
-// TabAnimationProvider.js
 import React, { createContext, useContext, useState } from "react";
 import { Animated } from "react-native";
 

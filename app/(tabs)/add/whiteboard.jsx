@@ -1,14 +1,13 @@
-import TextCanvasScreen from "../../../components/studio";
 import GradientBackground from "../../../components/linearGradient";
-import { StudioProvider } from "../../../context";
-import { NavigationContainer } from "@react-navigation/native";
+import { InvitationStudio } from "../../../components/studio";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function Whiteboard() {
   return (
-    <GradientBackground>
-      <NavigationContainer>
-        <TextCanvasScreen />
-      </NavigationContainer>
-    </GradientBackground>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GradientBackground>
+        <InvitationStudio />
+      </GradientBackground>
+    </GestureHandlerRootView>
   );
 }

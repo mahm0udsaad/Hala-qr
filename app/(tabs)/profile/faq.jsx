@@ -12,7 +12,7 @@ import { useWindowDimensions } from "react-native";
 
 const FaqScreen = () => {
   const { data, isLoading, error } = useFetch("/faqs");
-  const { width } = useWindowDimensions(); // For responsive rendering
+  const { width } = useWindowDimensions();
 
   if (isLoading) {
     return <ActivityIndicator size="large" color="#0000ff" />;

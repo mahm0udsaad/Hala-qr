@@ -1,3 +1,4 @@
+// EditTextModal.js
 import React from "react";
 import {
   View,
@@ -9,14 +10,21 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { useStudio } from "../../context";
 
-const EditTextModal = ({
-  visible,
-  text,
-  onChangeText,
-  onCancel,
-  onConfirm,
-}) => {
+const EditTextModal = ({ visible, onClose, elementId, initialText }) => {
+  const { updateText } = useStudio();
+  const [editingText, setEditingText] = React.useState(initialText);
+
+  const handleConfirm = () => {
+    updateText(elementId, { content: editingText });
+    onClose();
+  };
+
+  React.useEffect(() => {
+    setEditingText(initialText);
+  }, [initialText]);
+
   return (
     <Modal visible={visible} transparent={true} animationType="slide">
       <KeyboardAvoidingView
@@ -26,17 +34,20 @@ const EditTextModal = ({
         <View style={styles.editModal}>
           <TextInput
             style={styles.editInput}
-            value={text}
-            onChangeText={onChangeText}
+            value={editingText}
+            onChangeText={setEditingText}
             autoFocus
             multiline
             placeholder="Edit text"
           />
           <View style={styles.editModalButtons}>
-            <TouchableOpacity style={styles.editModalCancel} onPress={onCancel}>
+            <TouchableOpacity style={styles.editModalCancel} onPress={onClose}>
               <Text style={styles.editModalButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.editModalDone} onPress={onConfirm}>
+            <TouchableOpacity
+              style={styles.editModalDone}
+              onPress={handleConfirm}
+            >
               <Text style={styles.editModalButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
@@ -68,7 +79,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   editModalButtons: {
-    marginTop: 16,
     flexDirection: "row",
     justifyContent: "space-between",
   },

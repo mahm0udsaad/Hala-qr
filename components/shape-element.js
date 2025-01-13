@@ -11,6 +11,10 @@ import {
   EllipsisVertical,
   Minimize2,
   Maximize2,
+} from "lucide-react-native";
+import ShapeCustomizationModal from "./modals/cutomize-shape";
+import { useStudio } from "../context";
+import {
   Square,
   Circle,
   Triangle,
@@ -20,9 +24,8 @@ import {
   Heart,
   Diamond,
   Octagon,
-} from "lucide-react-native";
-import ShapeCustomizationModal from "./modals/cutomize-shape";
-import { useStudio } from "../context";
+} from "./icons";
+import TouchableWrapper from "./el-wrapper";
 
 const ShapeElement = ({
   type,
@@ -48,10 +51,6 @@ const ShapeElement = ({
   const [size, setSize] = useState(initialSize);
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
   const [currentColor, setCurrentColor] = useState(shapeColor);
-
-  const handleToggleControls = useCallback(() => {
-    toggleElementControls("shape", id);
-  }, []);
 
   const handleIncreaseSize = () => {
     const newSize = size + 10;
@@ -91,31 +90,24 @@ const ShapeElement = ({
     const props = {
       size,
       color: currentColor,
-      strokeWidth: !isFilled ? strokeWidth : 1.5,
-      fill: isFilled ? currentColor : "none",
+      strokeWidth: strokeWidth,
+      fill: isFilled,
     };
-    switch (type) {
-      case "square":
-        return <Square {...props} />;
-      case "circle":
-        return <Circle {...props} />;
-      case "triangle":
-        return <Triangle {...props} />;
-      case "pentagon":
-        return <Pentagon {...props} />;
-      case "hexagon":
-        return <Hexagon {...props} />;
-      case "star":
-        return <Star {...props} />;
-      case "heart":
-        return <Heart {...props} />;
-      case "diamond":
-        return <Diamond {...props} />;
-      case "octagon":
-        return <Octagon {...props} />;
-      default:
-        return <Square {...props} />;
-    }
+
+    const shapes = {
+      square: Square,
+      circle: Circle,
+      triangle: Triangle,
+      pentagon: Pentagon,
+      hexagon: Hexagon,
+      star: Star,
+      heart: Heart,
+      diamond: Diamond,
+      octagon: Octagon,
+    };
+
+    const ShapeComponent = shapes[type] || Square;
+    return <ShapeComponent {...props} />;
   };
 
   return (
@@ -127,12 +119,12 @@ const ShapeElement = ({
         ]}
         {...panResponder.panHandlers}
       >
-        <TouchableOpacity
-          onPress={handleToggleControls}
+        <TouchableWrapper
+          onElementPress={() => toggleElementControls("shape", id)}
           style={styles.shapeWrapper}
         >
           {getShapeIcon()}
-        </TouchableOpacity>
+        </TouchableWrapper>
 
         {showControls && (
           <View style={styles.controlButtons}>
@@ -166,6 +158,8 @@ const ShapeElement = ({
         shapeType={type}
         currentColor={currentColor}
         onCustomize={handleCustomize}
+        currentFilled={isFilled}
+        currentStrokeWidth={strokeWidth}
       />
     </>
   );
@@ -176,13 +170,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignSelf: "flex-start",
   },
-  shapeWrapper: {
-    padding: 8,
-  },
   controlButtons: {
     flexDirection: "row",
     position: "absolute",
-    top: -40,
+    top: -20,
     right: 0,
     backgroundColor: "white",
     borderRadius: 8,

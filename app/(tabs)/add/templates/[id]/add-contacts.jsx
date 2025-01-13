@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   Text,
   TextInput,
   ScrollView,
   Pressable,
-  Button,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -14,14 +14,45 @@ import * as Contacts from "expo-contacts";
 import { Link } from "expo-router";
 import { useStudio } from "../../../../../context";
 
+const Contact = memo(({ contact, isSelected, onSelect }) => (
+  <Pressable
+    onPress={() => onSelect(contact.id)}
+    style={({ pressed }) => [
+      styles.contactPressable,
+      { backgroundColor: pressed ? "#E5E5EA" : "white" },
+    ]}
+  >
+    <View style={styles.contactContainer}>
+      <View style={styles.contactInfoContainer}>
+        <Avatar.Text size={48} label={contact.avatar} style={styles.avatar} />
+        <View>
+          <Text style={styles.contactName}>{contact.name}</Text>
+          <Text style={styles.contactPhone}>{contact.phone}</Text>
+        </View>
+      </View>
+      <Icon
+        name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+        size={24}
+        color={isSelected ? "green" : "gray"}
+      />
+    </View>
+  </Pressable>
+));
+
 const AddGuestsScreen = () => {
   const [search, setSearch] = useState("");
-  const [selectedGuests, setSelectedGuests] = useState([]);
+  const [selectedGuests, setSelectedGuests] = useState(new Set());
   const [deviceContacts, setDeviceContacts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { addContact } = useStudio();
+
+  useEffect(() => {
+    handleImportContacts();
+  }, []);
 
   const handleImportContacts = async () => {
     try {
+      setIsLoading(true);
       const { status } = await Contacts.requestPermissionsAsync();
       if (status === "granted") {
         const { data } = await Contacts.getContactsAsync({
@@ -52,47 +83,60 @@ const AddGuestsScreen = () => {
       }
     } catch (error) {
       console.error("Error importing contacts:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSelect = (id) => {
-    setSelectedGuests((prevSelected) =>
-      prevSelected.includes(id)
-        ? prevSelected.filter((guestId) => guestId !== id)
-        : [...prevSelected, id],
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedGuests.length === filteredContacts.length) {
-      setSelectedGuests([]);
-    } else {
-      setSelectedGuests(filteredContacts.map((contact) => contact.id));
-    }
-  };
-
-  const handleSaveContacts = () => {
-    const selectedContacts = deviceContacts.filter((contact) =>
-      selectedGuests.includes(contact.id),
-    );
-    selectedContacts.forEach((contact) => {
-      addContact(contact);
+  const handleSelect = useCallback((id) => {
+    setSelectedGuests((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
     });
-  };
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    const filteredContacts = deviceContacts.filter((contact) =>
+      contact.name.toLowerCase().includes(search.toLowerCase()),
+    );
+
+    if (selectedGuests.size === filteredContacts.length) {
+      setSelectedGuests(new Set());
+    } else {
+      setSelectedGuests(new Set(filteredContacts.map((contact) => contact.id)));
+    }
+  }, [deviceContacts, search, selectedGuests.size]);
+
+  const handleSaveContacts = useCallback(() => {
+    const selectedContacts = deviceContacts.filter((contact) =>
+      selectedGuests.has(contact.id),
+    );
+    selectedContacts.forEach(addContact);
+  }, [deviceContacts, selectedGuests, addContact]);
 
   const filteredContacts = deviceContacts.filter((contact) =>
     contact.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Group contacts by section
   const groupedContacts = filteredContacts.reduce((acc, contact) => {
     const section = contact.section;
-    if (!acc[section]) {
-      acc[section] = [];
-    }
+    if (!acc[section]) acc[section] = [];
     acc[section].push(contact);
     return acc;
   }, {});
+
+  if (isLoading) {
+    return (
+      <View style={styles.emptyContainer}>
+        <ActivityIndicator size="large" color="#1E40AF" />
+      </View>
+    );
+  }
 
   if (deviceContacts.length === 0) {
     return (
@@ -108,7 +152,6 @@ const AddGuestsScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
       <View style={styles.searchBarContainer}>
         <TextInput
           style={styles.searchInput}
@@ -118,7 +161,6 @@ const AddGuestsScreen = () => {
         />
       </View>
 
-      {/* Contacts List */}
       <ScrollView style={styles.contactsList}>
         {Object.keys(groupedContacts)
           .sort()
@@ -126,51 +168,21 @@ const AddGuestsScreen = () => {
             <View key={section} style={styles.sectionContainer}>
               <Text style={styles.sectionText}>{section}</Text>
               {groupedContacts[section].map((contact) => (
-                <Pressable
+                <Contact
                   key={contact.id}
-                  onPress={() => handleSelect(contact.id)}
-                  style={({ pressed }) => [
-                    styles.contactPressable,
-                    {
-                      backgroundColor: pressed ? "#E5E5EA" : "white",
-                    },
-                  ]}
-                >
-                  <View style={styles.contactContainer}>
-                    <View style={styles.contactInfoContainer}>
-                      <Avatar.Text
-                        size={48}
-                        label={contact.avatar}
-                        style={styles.avatar}
-                      />
-                      <View>
-                        <Text style={styles.contactName}>{contact.name}</Text>
-                        <Text style={styles.contactPhone}>{contact.phone}</Text>
-                      </View>
-                    </View>
-                    <Icon
-                      name={
-                        selectedGuests.includes(contact.id)
-                          ? "checkmark-circle"
-                          : "ellipse-outline"
-                      }
-                      size={24}
-                      color={
-                        selectedGuests.includes(contact.id) ? "green" : "gray"
-                      }
-                    />
-                  </View>
-                </Pressable>
+                  contact={contact}
+                  isSelected={selectedGuests.has(contact.id)}
+                  onSelect={handleSelect}
+                />
               ))}
             </View>
           ))}
       </ScrollView>
 
-      {/* Bottom Buttons */}
       <View style={styles.bottomContainer}>
         <Pressable style={styles.selectAllButton} onPress={handleSelectAll}>
           <Text style={styles.selectAllButtonText}>
-            {selectedGuests.length === filteredContacts.length
+            {selectedGuests.size === filteredContacts.length
               ? "Deselect All"
               : "Select All"}
           </Text>
@@ -184,7 +196,9 @@ const AddGuestsScreen = () => {
           onPress={handleSaveContacts}
           style={styles.saveButton}
         >
-          <Text style={styles.saveButtonText}>Save & Continue</Text>
+          <Text style={styles.saveButtonText}>
+            Save & Continue ({selectedGuests.size})
+          </Text>
         </Link>
       </View>
     </View>

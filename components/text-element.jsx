@@ -14,6 +14,10 @@ import { Trash2, Edit2, EllipsisVertical } from "lucide-react-native";
 import ColorPicker, { HueSlider, Panel1 } from "reanimated-color-picker";
 import Slider from "@react-native-community/slider";
 import { useStudio } from "../context";
+import * as Font from "expo-font";
+import EditTextModal from "./modals/edit-text";
+
+// ../../../assets/fonts/Cairo/static/Cairo-Regular.ttf
 
 const { width, height } = Dimensions.get("window");
 
@@ -28,10 +32,10 @@ const fontWeightOptions = [
 const fontFamilyOptions = [
   { label: "Default", font: "system" },
   { label: "Serif", font: "serif" },
-  { label: "Monospace", font: "monospace" },
-  { label: "Sans Serif", font: "sans-serif" },
-  { label: "Roboto", font: "Roboto" },
   { label: "Open Sans", font: "OpenSans" },
+  { label: "Monospace", font: "monospace" },
+  { label: "Cairo", font: "Cairo" },
+  { label: "Sans Serif", font: "sans-serif" },
   { label: "Lato", font: "Lato" },
   { label: "Nunito", font: "Nunito" },
   { label: "Courier", font: "Courier" },
@@ -39,8 +43,6 @@ const fontFamilyOptions = [
 
 const TextElement = ({
   text,
-  onDelete,
-  onEdit,
   initialX = width / 2,
   initialY = height / 2,
   textColor = "#000000",
@@ -48,16 +50,38 @@ const TextElement = ({
   fontSize = 16,
   fontWeight = "400",
   fontFamily = "system",
-  onColorChange,
-  onStyleChange,
   showControls,
   id,
 }) => {
-  const { toggleElementControls, updateElementPosition } = useStudio();
+  const {
+    toggleElementControls,
+    updateElementPosition,
+    deleteText,
+    updateText,
+  } = useStudio();
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [loadingFonts, setLoadingFonts] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const handleDelete = () => {
+    deleteText(id);
+  };
+  const loadFonts = async () => {
+    if (fontsLoaded || loadingFonts) return;
 
-  const pan = useRef(
-    new Animated.ValueXY({ x: initialX, y: initialY }),
-  ).current;
+    setLoadingFonts(true);
+    try {
+      await Font.loadAsync({
+        Roboto: require("../assets/fonts/Cairo/static/Cairo-Regular.ttf"),
+        OpenSans: require("../assets/fonts/OpenSans_SemiCondensed-Regular.ttf"),
+      });
+      setFontsLoaded(true);
+    } catch (error) {
+      console.warn("Error loading fonts:", error);
+    } finally {
+      setLoadingFonts(false);
+    }
+  };
+
   const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   // Store temporary style changes
@@ -73,19 +97,32 @@ const TextElement = ({
     toggleElementControls("text", id);
   }, []);
 
+  const pan = useRef(
+    new Animated.ValueXY({ x: initialX, y: initialY }),
+  ).current;
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        pan.setOffset({ x: pan.x._value, y: pan.y._value });
-        pan.setValue({ x: 0, y: 0 });
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        evt.persist();
+        return true;
       },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
-      onPanResponderRelease: () => {
+      onPanResponderGrant: (evt, gestureState) => {
+        evt.persist();
+        pan.setOffset({
+          x: pan.x._value,
+          y: pan.y._value,
+        });
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        evt.persist();
+        Animated.event([null, { dx: pan.x, dy: pan.y }], {
+          useNativeDriver: false,
+        })(evt, gestureState);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        evt.persist();
         pan.flattenOffset();
-        // Calculate new position and update in context
         const newX = pan.x._value;
         const newY = pan.y._value;
         updateElementPosition("text", id, newX, newY);
@@ -100,7 +137,6 @@ const TextElement = ({
   const truncatedText = text.length > 30 ? text.substring(0, 30) + "..." : text;
 
   const handleStyleChange = (newStyle) => {
-    // Update temporary styles
     setTempStyles((prev) => ({
       ...prev,
       ...newStyle,
@@ -108,13 +144,11 @@ const TextElement = ({
   };
 
   const handleDone = () => {
-    // Apply all temporary styles at once when "Done" is pressed
-    onStyleChange(tempStyles);
+    updateText(id, tempStyles);
     setShowMoreOptions(false);
   };
 
   const handleCancel = () => {
-    // Reset temporary styles to original values
     setTempStyles({
       textColor,
       backgroundColor,
@@ -123,6 +157,11 @@ const TextElement = ({
       fontFamily,
     });
     setShowMoreOptions(false);
+  };
+
+  const handleShowMoreOptions = async () => {
+    loadFonts();
+    setShowMoreOptions(true);
   };
 
   return (
@@ -157,16 +196,22 @@ const TextElement = ({
           <View style={styles.controlButtons}>
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => setShowMoreOptions(true)}
+              onPress={() => handleShowMoreOptions()}
             >
               <EllipsisVertical size={18} color="#1E3A8A" />
             </TouchableOpacity>
             <Text style={styles.separator}>|</Text>
-            <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setShowEditModal(true)}
+            >
               <Edit2 size={18} color="#1E3A8A" />
             </TouchableOpacity>
             <Text style={styles.separator}>|</Text>
-            <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+            >
               <Trash2 size={18} color="#FF0000" />
             </TouchableOpacity>
           </View>
@@ -308,6 +353,12 @@ const TextElement = ({
           </View>
         </View>
       </Modal>
+      <EditTextModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        elementId={id}
+        initialText={text}
+      />
     </>
   );
 };
