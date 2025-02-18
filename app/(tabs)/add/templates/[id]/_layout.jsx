@@ -25,7 +25,7 @@ export default function TemplatesLayout() {
       <Stack.Screen
         name="event-preview"
         options={{
-          ...conf.headerOptions({ title: "Event Preview" }),
+          headerShown: false,
           animation: "slide_from_right",
         }}
       />

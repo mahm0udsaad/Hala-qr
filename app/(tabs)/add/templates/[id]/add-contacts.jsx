@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
 import {
   View,
   Text,
   TextInput,
-  ScrollView,
+  SectionList,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -11,8 +11,8 @@ import {
 import { Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/Ionicons";
 import * as Contacts from "expo-contacts";
-import { Link } from "expo-router";
-import { useStudio } from "../../../../../context";
+import { Link, useLocalSearchParams } from "expo-router";
+import { useStudio } from "../../../../../components/studio/context";
 
 const Contact = memo(({ contact, isSelected, onSelect }) => (
   <Pressable
@@ -44,7 +44,16 @@ const AddGuestsScreen = () => {
   const [selectedGuests, setSelectedGuests] = useState(new Set());
   const [deviceContacts, setDeviceContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { addContact } = useStudio();
+  const { addGuest, event } = useStudio();
+  const params = useLocalSearchParams();
+
+  // Initialize selected guests from existing event guests
+  useEffect(() => {
+    if (event?.guests) {
+      const existingGuestIds = new Set(event.guests.map((guest) => guest.id));
+      setSelectedGuests(existingGuestIds);
+    }
+  }, [event]);
 
   useEffect(() => {
     handleImportContacts();
@@ -116,19 +125,37 @@ const AddGuestsScreen = () => {
     const selectedContacts = deviceContacts.filter((contact) =>
       selectedGuests.has(contact.id),
     );
-    selectedContacts.forEach(addContact);
-  }, [deviceContacts, selectedGuests, addContact]);
+    // Add each contact individually using addGuest
+    selectedContacts.forEach((contact) => {
+      addGuest(contact);
+    });
+  }, [deviceContacts, selectedGuests, addGuest]);
 
-  const filteredContacts = deviceContacts.filter((contact) =>
-    contact.name.toLowerCase().includes(search.toLowerCase()),
+  // Memoized filtering for performance
+  const filteredContacts = useMemo(
+    () =>
+      deviceContacts.filter((contact) =>
+        contact.name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [deviceContacts, search],
   );
 
-  const groupedContacts = filteredContacts.reduce((acc, contact) => {
-    const section = contact.section;
-    if (!acc[section]) acc[section] = [];
-    acc[section].push(contact);
-    return acc;
-  }, {});
+  // Prepare sections for SectionList for better performance
+  const contactSections = useMemo(() => {
+    const sections = {};
+    filteredContacts.forEach((contact) => {
+      const section = contact.section;
+      if (!sections[section]) sections[section] = [];
+      sections[section].push(contact);
+    });
+
+    return Object.keys(sections)
+      .sort()
+      .map((section) => ({
+        title: section,
+        data: sections[section],
+      }));
+  }, [filteredContacts]);
 
   if (isLoading) {
     return (
@@ -161,23 +188,21 @@ const AddGuestsScreen = () => {
         />
       </View>
 
-      <ScrollView style={styles.contactsList}>
-        {Object.keys(groupedContacts)
-          .sort()
-          .map((section) => (
-            <View key={section} style={styles.sectionContainer}>
-              <Text style={styles.sectionText}>{section}</Text>
-              {groupedContacts[section].map((contact) => (
-                <Contact
-                  key={contact.id}
-                  contact={contact}
-                  isSelected={selectedGuests.has(contact.id)}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </View>
-          ))}
-      </ScrollView>
+      <SectionList
+        sections={contactSections}
+        keyExtractor={(item) => item.id}
+        renderSectionHeader={({ section: { title } }) => (
+          <Text style={styles.sectionText}>{title}</Text>
+        )}
+        renderItem={({ item }) => (
+          <Contact
+            contact={item}
+            isSelected={selectedGuests.has(item.id)}
+            onSelect={handleSelect}
+          />
+        )}
+        style={styles.contactsList}
+      />
 
       <View style={styles.bottomContainer}>
         <Pressable style={styles.selectAllButton} onPress={handleSelectAll}>

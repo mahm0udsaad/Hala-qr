@@ -28,19 +28,8 @@ export default function ProfileLayout() {
       <Stack.Screen
         name="edit-profile"
         options={{
-          headerRight: () => (
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => {
-                console.log("Save pressed");
-              }}
-            >
-              <Text style={styles.saveButtonText}>SAVE</Text>
-            </TouchableOpacity>
-          ),
-          title: "Edit Profile",
+          headerShown: false,
           animation: "slide_from_right",
-          ...commonOptions,
         }}
       />
       <Stack.Screen
@@ -54,7 +43,7 @@ export default function ProfileLayout() {
       <Stack.Screen
         name="faq"
         options={{
-          title: "Frequently Asked Questions",
+          title: t("faq"),
           animation: "slide_from_right",
           ...commonOptions,
         }}
@@ -62,7 +51,7 @@ export default function ProfileLayout() {
       <Stack.Screen
         name="terms"
         options={{
-          title: "Terms of Service",
+          title: t("termsOfService"),
           animation: "slide_from_right",
           ...commonOptions,
         }}
@@ -70,13 +59,20 @@ export default function ProfileLayout() {
       <Stack.Screen
         name="privacy"
         options={{
-          title: "Privacy Policy",
+          title: t("privacyPolicy"),
           animation: "slide_from_right",
           ...commonOptions,
         }}
       />
       <Stack.Screen
         name="payment-info"
+        options={{
+          animation: "slide_from_right",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="contact-us"
         options={{
           animation: "slide_from_right",
           headerShown: false,

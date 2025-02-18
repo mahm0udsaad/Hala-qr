@@ -2,18 +2,15 @@ import React from "react";
 import {
   Rect,
   Group,
-  Circle,
   Text,
   useFont,
   Image as SkiaImage,
   useImage,
+  ImageSVG,
+  useSVG,
+  rect,
+  fitbox,
 } from "@shopify/react-native-skia";
-import {
-  CardIcon,
-  InvitationCardIcon,
-  TwoHeartsIcon,
-  GiftIcon,
-} from "./../icons";
 
 const CanvasImageElement = ({ element, transform }) => {
   const image = useImage(element.url);
@@ -59,12 +56,12 @@ const CanvasImageElement = ({ element, transform }) => {
   );
 };
 
-export const CanvasElement = ({ element, transform }) => {
-  if (!element) return null;
-  const font = useFont(
-    require("../../../assets/fonts/Cairo/static/Cairo-Regular.ttf"),
-    32,
-  );
+const CanvasIconElement = ({ element, transform }) => {
+  const svg = useSVG(element.thumbnail); // Use thumbnail from the element object
+
+  if (!svg) {
+    return null;
+  }
 
   const matrix = transform
     ? [
@@ -80,99 +77,44 @@ export const CanvasElement = ({ element, transform }) => {
         { rotate: 0 },
       ];
 
+  // Create source and destination rectangles for fitting
+  const src = rect(0, 0, svg.width(), svg.height());
+  const dst = rect(0, 0, element.size.width, element.size.width);
+
+  return (
+    <Group transform={matrix}>
+      <Group transform={fitbox("contain", src, dst)}>
+        <ImageSVG
+          svg={svg}
+          width={svg.width()}
+          height={svg.height()}
+          opacity={element.opacity || 1}
+        />
+      </Group>
+    </Group>
+  );
+};
+
+export const CanvasElement = ({ element, transform }) => {
+  if (!element) return null;
+
+  const font = useFont(
+    require("../../../assets/fonts/Cairo/static/Cairo-Regular.ttf"),
+    32,
+  );
+
+  // Handle basic shapes first
   switch (element.type) {
-    case "square":
-      return (
-        <Group
-          transform={matrix}
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <Rect
-            x={-element.size.width / 2}
-            y={-element.size.width / 2}
-            width={element.size.width}
-            height={element.size.height}
-          />
-        </Group>
-      );
-    case "circle":
-      return (
-        <Group
-          transform={matrix}
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <Circle cx={0} cy={0} r={element.size.radius} />
-        </Group>
-      );
-    case "card":
-      return (
-        <Group
-          transform={matrix}
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <CardIcon
-            size={element.size.width}
-            color={element.color}
-            opacity={element.opacity || 1}
-          />
-        </Group>
-      );
-    case "invitation":
-      return (
-        <Group
-          transform={matrix}
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <InvitationCardIcon
-            size={element.size.width}
-            color={element.color}
-            opacity={element.opacity || 1}
-          />
-        </Group>
-      );
-    case "hearts":
-      return (
-        <Group
-          transform={matrix}
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <TwoHeartsIcon size={element.size.width} color={element.color} />
-        </Group>
-      );
-    case "gift":
-      return (
-        <Group
-          transform={matrix}
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <GiftIcon
-            size={element.size.width}
-            color={element.color}
-            opacity={element.opacity || 1}
-          />
-        </Group>
-      );
     case "text":
       return (
-        <Group transform={matrix}>
+        <Group
+          transform={[
+            { translateX: transform?.translateX || element.position.x },
+            { translateY: transform?.translateY || element.position.y },
+            { scale: transform?.scale || 1 },
+            { rotate: transform?.rotate || 0 },
+          ]}
+        >
           <Text
             x={element.size.width / 4}
             y={element.size.height / 1.5}
@@ -184,100 +126,33 @@ export const CanvasElement = ({ element, transform }) => {
         </Group>
       );
     case "image":
-      return <CanvasImageElement element={element} transform={matrix} />;
+      return <CanvasImageElement element={element} transform={transform} />;
     default:
-      return null;
+      // Handle icons using the thumbnail URL
+      return <CanvasIconElement element={element} transform={transform} />;
   }
 };
 
 export const CanvasElementPreview = ({ element }) => {
   if (!element) return null;
 
-  switch (element.type) {
-    case "square":
-      return (
-        <Group
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <Rect
-            x={-element.size.width / 2}
-            y={-element.size.width / 2}
-            width={element.size.width}
-            height={element.size.height}
-          />
-        </Group>
-      );
-    case "circle":
-      return (
-        <Group
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <Circle cx={0} cy={0} r={element.size.radius} />
-        </Group>
-      );
-    case "card":
-      return (
-        <Group
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <CardIcon
-            size={element.size.width}
-            color={element.color}
-            opacity={element.opacity || 1}
-          />
-        </Group>
-      );
-    case "invitation":
-      return (
-        <Group
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <InvitationCardIcon
-            size={element.size.width}
-            color={element.color}
-            opacity={element.opacity || 1}
-          />
-        </Group>
-      );
-    case "hearts":
-      return (
-        <Group
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <TwoHeartsIcon size={element.size.width} color={element.color} />
-        </Group>
-      );
-    case "gift":
-      return (
-        <Group
-          style={element.style === "stroke" ? `stroke` : `fill`}
-          strokeWidth={
-            element.style === "stroke" ? element.strokeWidth : undefined
-          }
-        >
-          <GiftIcon
-            size={element.size.width}
-            color={element.color}
-            opacity={element.opacity || 1}
-          />
-        </Group>
-      );
-    default:
-      return null;
+  const svg = useSVG(element.thumbnail); // Use thumbnail from the element object
+
+  if (!svg) {
+    return null;
   }
+
+  const src = rect(0, 0, svg.width(), svg.height());
+  const dst = rect(0, 0, element.size.width, element.size.width);
+
+  return (
+    <Group transform={fitbox("contain", src, dst)}>
+      <ImageSVG
+        svg={svg}
+        width={svg.width()}
+        height={svg.height()}
+        opacity={element.opacity || 1}
+      />
+    </Group>
+  );
 };

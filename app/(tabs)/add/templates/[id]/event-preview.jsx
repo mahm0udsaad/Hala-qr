@@ -9,12 +9,12 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useStudio } from "../../../../../context";
+import { useStudio } from "../../../../../components/studio/context";
+import EventDetailsHeader from "../../../../../components/studio/components/event-details-header";
 
 const PreviewScreen = () => {
   const { state } = useStudio();
-  const { details, contacts } = state.invitation;
-  console.log(state.invitation);
+  const { details } = state.invitation;
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -63,127 +63,130 @@ const PreviewScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Event Banner */}
-      <View style={styles.bannerContainer}>
-        <Image
-          src={state.invitation.image}
-          style={styles.bannerImage}
-          resizeMode="contain"
-        />
-
-        <Link
-          href={{
-            pathname: "/add/templates/[id]/event-details",
-            params: { id: "current" },
-          }}
-          asChild
-        >
-          <Pressable style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit Details</Text>
-          </Pressable>
-        </Link>
-      </View>
-
-      {/* Event Details */}
-      <View style={styles.eventDetailsContainer}>
-        <Text style={styles.eventTitle}>
-          {details.title || "Untitled Event"}
-        </Text>
-
-        {/* Date and Time */}
-        <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateTimeText}>
-            📅 {formatDate(details.startDate)}
-          </Text>
-        </View>
-        <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateTimeText}>
-            ⏰ {formatTime(details.startTime)} – {formatTime(details.endTime)}
-          </Text>
-        </View>
-        <Text style={styles.addToCalendarText}>+ Add to Calendar</Text>
-
-        {/* Location */}
-        <View style={styles.locationContainer}>
-          <Text style={styles.locationText}>
-            📍 {details.location || "Location not specified"}
-          </Text>
-        </View>
-
-        {/* Map */}
-        <View style={styles.mapContainer}>
+    <>
+      <EventDetailsHeader />
+      <ScrollView style={styles.container}>
+        {/* Event Banner */}
+        <View style={styles.bannerContainer}>
           <Image
-            source={{
-              uri: "https://i.sstatic.net/HILmr.png",
-            }}
-            style={styles.mapImage}
+            src={state.backgroundImage}
+            style={styles.bannerImage}
             resizeMode="contain"
           />
+
+          <Link
+            href={{
+              pathname: "/add/templates/[id]/event-details",
+              params: { id: "current" },
+            }}
+            asChild
+          >
+            <Pressable style={styles.editButton}>
+              <Text style={styles.editButtonText}>Edit Details</Text>
+            </Pressable>
+          </Link>
         </View>
-      </View>
 
-      {/* Hosted By */}
-      <View style={styles.hostedByContainer}>
-        <Text style={styles.sectionTitle}>Hosted By</Text>
-        <Text style={styles.hostedByText}>
-          {details.hostedBy || "Not specified"}
-        </Text>
-      </View>
+        {/* Event Details */}
+        <View style={styles.eventDetailsContainer}>
+          <Text style={styles.eventTitle}>
+            {details.title || "Untitled Event"}
+          </Text>
 
-      {/* Event Description */}
-      <View style={styles.descriptionContainer}>
-        <Text style={styles.sectionTitle}>Event Description</Text>
-        <Text style={styles.descriptionText}>
-          {details.description || "No description provided"}
-        </Text>
-      </View>
-
-      {/* Guest List */}
-      {!details.hideGuestList && (
-        <View style={styles.guestListContainer}>
-          <View style={styles.addContactButtonContainer}>
-            <Link
-              href={{
-                pathname: "/add/templates/[id]/add-contacts",
-                params: { id: "current" },
-              }}
-              style={styles.addContactButton}
-            >
-              <Ionicons name="person-add-outline" size={20} color="#009CDE" />
-            </Link>
+          {/* Date and Time */}
+          <View style={styles.dateTimeContainer}>
+            <Text style={styles.dateTimeText}>
+              📅 {formatDate(details.startDate)}
+            </Text>
           </View>
-          <Text style={styles.sectionTitle}>Guest List</Text>
+          <View style={styles.dateTimeContainer}>
+            <Text style={styles.dateTimeText}>
+              ⏰ {formatTime(details.startTime)} – {formatTime(details.endTime)}
+            </Text>
+          </View>
+          <Text style={styles.addToCalendarText}>+ Add to Calendar</Text>
 
-          {(contacts || []).map((contact) => {
-            const { color, label } = getStatusIndicator(contact.status);
-            return (
-              <View key={contact.id} style={styles.contactItemContainer}>
-                <View style={styles.contactInfoContainer}>
-                  <View style={styles.avatarContainer}>
-                    <Text style={styles.avatarText}>
-                      {contact.avatar || contact.name.slice(0, 2).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={styles.contactName}>{contact.name}</Text>
-                    <Text style={styles.contactPhone}>{contact.phone}</Text>
-                  </View>
-                </View>
-                <View style={styles.statusContainer}>
-                  <Text style={color}>{label}</Text>
-                </View>
-              </View>
-            );
-          })}
+          {/* Location */}
+          <View style={styles.locationContainer}>
+            <Text style={styles.locationText}>
+              📍 {details.location || "Location not specified"}
+            </Text>
+          </View>
+
+          {/* Map */}
+          <View style={styles.mapContainer}>
+            <Image
+              source={{
+                uri: "https://i.sstatic.net/HILmr.png",
+              }}
+              style={styles.mapImage}
+              resizeMode="contain"
+            />
+          </View>
         </View>
-      )}
-    </ScrollView>
+
+        {/* Hosted By */}
+        <View style={styles.hostedByContainer}>
+          <Text style={styles.sectionTitle}>Hosted By</Text>
+          <Text style={styles.hostedByText}>
+            {details.hostedBy || "Not specified"}
+          </Text>
+        </View>
+
+        {/* Event Description */}
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.sectionTitle}>Event Description</Text>
+          <Text style={styles.descriptionText}>
+            {details.description || "No description provided"}
+          </Text>
+        </View>
+
+        {/* Guest List */}
+        {!details.hideGuestList && (
+          <View style={styles.guestListContainer}>
+            <View style={styles.addContactButtonContainer}>
+              <Link
+                href={{
+                  pathname: "/add/templates/[id]/add-contacts",
+                  params: { id: "current" },
+                }}
+                style={styles.addContactButton}
+              >
+                <Ionicons name="person-add-outline" size={20} color="#009CDE" />
+              </Link>
+            </View>
+            <Text style={styles.sectionTitle}>Guest List</Text>
+
+            {(state.guests || []).map((contact) => {
+              const { color, label } = getStatusIndicator(contact.status);
+              return (
+                <View key={contact.id} style={styles.contactItemContainer}>
+                  <View style={styles.contactInfoContainer}>
+                    <View style={styles.avatarContainer}>
+                      <Text style={styles.avatarText}>
+                        {contact.avatar ||
+                          contact.name.slice(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={styles.contactName}>{contact.name}</Text>
+                      <Text style={styles.contactPhone}>{contact.phone}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.statusContainer}>
+                    <Text style={color}>{label}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  // ... (styles remain the same as in your original code)
   container: {
     flex: 1,
     backgroundColor: "white",

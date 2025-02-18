@@ -1,55 +1,71 @@
-// CanvasContext.js
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const CanvasContext = createContext(null);
+const UserContext = createContext();
 
-export const CanvasProvider = ({ children }) => {
-  const [elements, setElements] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-  const [background, setBackground] = useState({
-    type: "color",
-    value: "#ffffff",
-  });
+export const UserProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
 
-  const addElement = useCallback((element) => {
-    setElements((prev) => [
-      ...prev,
-      { ...element, id: Math.random().toString() },
-    ]);
+  // Load user data from AsyncStorage on app start
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("userData");
+        const storedToken = await AsyncStorage.getItem("userToken");
+
+        if (storedUser && storedToken) {
+          setUser(JSON.parse(storedUser));
+          setToken(storedToken);
+        }
+      } catch (error) {
+        console.error("Failed to load user data", error);
+      }
+    };
+
+    loadUserData();
   }, []);
 
-  const updateElement = useCallback((id, updates) => {
-    setElements((prev) =>
-      prev.map((el) => (el.id === id ? { ...el, ...updates } : el)),
-    );
-  }, []);
+  // Save user data to AsyncStorage
+  const saveUserData = async (userData, userToken) => {
+    try {
+      await AsyncStorage.setItem("userData", JSON.stringify(userData));
+      await AsyncStorage.setItem("userToken", userToken);
+      setUser(userData);
+      setToken(userToken);
+    } catch (error) {
+      console.error("Failed to save user data", error);
+    }
+  };
 
-  const removeElement = useCallback((id) => {
-    setElements((prev) => prev.filter((el) => el.id !== id));
-  }, []);
-
+  // In your UserContext
+  const logout = async () => {
+    try {
+      await AsyncStorage.multiRemove([
+        "userData",
+        "userToken",
+        "hasSeenOnboarding",
+      ]);
+      setUser(null);
+      setToken(null);
+    } catch (error) {
+      console.error("Logout failed", error);
+      throw error; // Propagate the error to handle it in the component
+    }
+  };
   return (
-    <CanvasContext.Provider
+    <UserContext.Provider
       value={{
-        elements,
-        selectedId,
-        background,
-        setSelectedId,
-        setBackground,
-        addElement,
-        updateElement,
-        removeElement,
+        user,
+        token,
+        saveUserData,
+        logout,
       }}
     >
       {children}
-    </CanvasContext.Provider>
+    </UserContext.Provider>
   );
 };
 
-export const useCanvas = () => {
-  const context = useContext(CanvasContext);
-  if (!context) {
-    throw new Error("useCanvas must be used within a CanvasProvider");
-  }
-  return context;
-};
+// Custom hook for using user context
+export const useUser = () => useContext(UserContext);

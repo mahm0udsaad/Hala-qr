@@ -2,15 +2,15 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
-import { View, Dimensions, StatusBar } from "react-native";
+import { View, Dimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomOnboarding from "@/components/onboard";
 import { Video, ResizeMode } from "expo-av";
-import "intl-pluralrules"; // Polyfill for Intl.PluralRules
-import "./i18n"; // import the i18n configuration file
+import "intl-pluralrules";
+import "./i18n";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
-export { ErrorBoundary } from "expo-router";
+import { UserProvider } from "../context";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -34,6 +34,7 @@ export default function RootLayout() {
     async function prepare() {
       try {
         const status = await AsyncStorage.getItem("hasSeenOnboarding");
+
         setHasSeenOnboarding(status === "true");
       } catch (e) {
         console.warn("Error preparing app:", e);
@@ -56,17 +57,18 @@ export default function RootLayout() {
     setVideoLayout({ width, height });
   }, []);
 
-  // Show video splash screen during loading
+  const handleOnboardingFinish = async () => {
+    try {
+      await AsyncStorage.setItem("hasSeenOnboarding", "true");
+      setHasSeenOnboarding(true);
+    } catch (error) {
+      console.error("Failed to complete onboarding:", error);
+    }
+  };
+
   if (!appIsReady || !fontsLoaded || !videoIsFinished) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#464f60",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <View style={{ flex: 1, backgroundColor: "#464f60" }}>
         <Video
           source={require("../assets/video/splash.mp4")}
           resizeMode={ResizeMode.CONTAIN}
@@ -86,52 +88,29 @@ export default function RootLayout() {
   if (fontError) throw fontError;
 
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="light-content"
-      />
-
-      {hasSeenOnboarding ? (
-        <I18nextProvider i18n={i18n}>
-          <RootLayoutNav />
-        </I18nextProvider>
-      ) : (
-        <OnboardingWrapper setHasSeenOnboarding={setHasSeenOnboarding} />
-      )}
-    </View>
-  );
-}
-
-function OnboardingWrapper({ setHasSeenOnboarding }) {
-  const handleOnboardingFinish = async () => {
-    try {
-      await AsyncStorage.setItem("hasSeenOnboarding", "true");
-      setHasSeenOnboarding(true);
-    } catch (error) {
-      console.error("Failed to complete onboarding:", error);
-    }
-  };
-
-  return <CustomOnboarding onFinish={handleOnboardingFinish} />;
-}
-
-function RootLayoutNav() {
-  return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="authModal"
-        options={{
-          presentation: "fullScreenModal",
-          headerStyle: {
-            backgroundColor: "transparent",
-          },
-          animation: "slide_from_bottom",
-          headerShown: false,
-        }}
-      />
-    </Stack>
+    <I18nextProvider i18n={i18n}>
+      <UserProvider>
+        <View style={{ flex: 1 }}>
+          {hasSeenOnboarding ? (
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="authModal"
+                options={{
+                  presentation: "fullScreenModal",
+                  headerStyle: {
+                    backgroundColor: "transparent",
+                  },
+                  animation: "slide_from_bottom",
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          ) : (
+            <CustomOnboarding onFinish={handleOnboardingFinish} />
+          )}
+        </View>
+      </UserProvider>
+    </I18nextProvider>
   );
 }

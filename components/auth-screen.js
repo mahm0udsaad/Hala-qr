@@ -8,26 +8,24 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import GradientBackground from "@/components/linearGradient";
-import { useRouter } from "expo-router";
+import GradientBackground from "./linearGradient";
+import { LoginForm, OTPForm } from "./auth/forms";
+import LoginSuccessCard from "./cards/login-succes";
 import { useTranslation } from "react-i18next";
-import { LoginForm, OTPForm } from "@/components/auth/forms";
 import { useUser } from "../context";
-import LoginSuccessCard from "../components/cards/login-succes";
 
-export default function ModalScreen() {
-  const { t } = useTranslation();
+const AuthScreen = ({ onSuccess, onClose }) => {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [dialCode, setDialCode] = useState("20");
   const [countryCode, setCountryCode] = useState("eg");
   const [showMobileInput, setShowMobileInput] = useState(false);
   const [showOTPInput, setShowOTPInput] = useState(false);
+  const { saveUserData } = useUser();
   const [showSuccessCard, setShowSuccessCard] = useState(false);
   const [otp, setOTP] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { saveUserData } = useUser();
+  const { t } = useTranslation();
 
   const clearOTPInputs = () => {
     setOTP(["", "", "", "", "", ""]);
@@ -95,11 +93,11 @@ export default function ModalScreen() {
 
       if (response.data.status) {
         saveUserData(response.data.data.user, response.data.data.token);
-        setShowOTPInput(false);
+        console.log(response.data.data);
         setShowSuccessCard(true);
         setTimeout(() => {
-          router.push("/");
-        }, 1000);
+          onSuccess();
+        }, 1500);
       } else {
         clearOTPInputs();
         Alert.alert("Invalid OTP", "Please enter the correct OTP code.");
@@ -149,10 +147,7 @@ export default function ModalScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <View style={styles.closeButtonContainer}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.closeButton}
-          >
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close-outline" size={28} color="#000000" />
           </TouchableOpacity>
         </View>
@@ -190,7 +185,7 @@ export default function ModalScreen() {
       </SafeAreaView>
     </GradientBackground>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -219,3 +214,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
+
+export default AuthScreen;

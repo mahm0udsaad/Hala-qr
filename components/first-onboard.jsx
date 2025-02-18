@@ -8,7 +8,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 
-const SplashScreen = ({ onSkip }) => {
+const SplashScreen = ({ onSkip, onCreateAccount }) => {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
 
@@ -33,6 +33,10 @@ const SplashScreen = ({ onSkip }) => {
     transform: [{ translateY: translateY.value * -1 }],
   }));
 
+  const handleCreateAccount = () => {
+    onCreateAccount();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
@@ -44,10 +48,13 @@ const SplashScreen = ({ onSkip }) => {
         </Animated.Text>
       </View>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.createAccountButton}>
+        <TouchableOpacity
+          style={styles.createAccountButton}
+          onPress={handleCreateAccount}
+        >
           <Text style={styles.createAccountText}>Create Account</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onSkip} style={styles.skipButton}>
+        <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -64,49 +71,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   textContainer: {
-    paddingTop: 160, // Tailwind's pt-40
+    paddingTop: 160,
     alignItems: "center",
     justifyContent: "center",
   },
   englishText: {
-    fontSize: 48, // Tailwind's text-6xl (~48px)
-    fontWeight: "bold", // Tailwind's font-bold
-    color: "#2563EB", // Tailwind's text-blue-600
+    fontSize: 48,
+    fontWeight: "bold",
+    color: "#2563EB",
   },
   arabicText: {
-    fontSize: 48, // Tailwind's text-6xl (~48px)
-    fontWeight: "bold", // Tailwind's font-bold
-    color: "#16A34A", // Tailwind's text-green-600
+    fontSize: 48,
+    fontWeight: "bold",
+    color: "#16A34A",
   },
   buttonContainer: {
     width: "100%",
-    paddingHorizontal: 20, // Tailwind's px-5 (5 * 4 = 20px)
-    marginBottom: 32, // Tailwind's mb-8 (8 * 4 = 32px)
+    paddingHorizontal: 20,
+    marginBottom: 32,
   },
   createAccountButton: {
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#2563EB", // Tailwind's bg-blue-600
-    borderRadius: 9999, // Tailwind's rounded-full
-    paddingVertical: 12, // Tailwind's py-3 (3 * 4 = 12px)
+    backgroundColor: "#2563EB",
+    borderRadius: 9999,
+    paddingVertical: 12,
   },
   createAccountText: {
-    color: "#FFFFFF", // Tailwind's text-white
-    fontSize: 18, // Tailwind's text-lg (~18px)
-    fontWeight: "600", // Tailwind's font-semibold
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
   },
   skipButton: {
-    backgroundColor: "#FACC15", // Tailwind's bg-yellow-400
-    borderRadius: 9999, // Tailwind's rounded-full
-    paddingVertical: 12, // Tailwind's py-3 (3 * 4 = 12px)
+    backgroundColor: "#FACC15",
+    borderRadius: 9999,
+    paddingVertical: 12,
     alignItems: "center",
-    marginTop: 12, // Tailwind's mt-3 (3 * 4 = 12px)
+    marginTop: 12,
   },
   skipText: {
-    color: "#1F2937", // Tailwind's text-gray-800
-    fontSize: 18, // Tailwind's text-lg (~18px)
-    fontWeight: "600", // Tailwind's font-semibold
+    color: "#1F2937",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });
 

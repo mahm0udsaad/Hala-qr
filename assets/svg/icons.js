@@ -1,4 +1,6 @@
-export const invitationIconXml = `
+import { Skia } from "@shopify/react-native-skia";
+
+export const invitationIconXml = Skia.SVG.MakeFromString(`
 <svg width="102" height="101" viewBox="0 0 102 101" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M101.5 50.5C101.5 78.1096 78.895 100.5 51 100.5C23.105 100.5 0.5 78.1096 0.5 50.5C0.5 22.8904 23.105 0.5 51 0.5C78.895 0.5 101.5 22.8904 101.5 50.5Z" fill="#FFDA78" stroke="#003B95"/>
 <g clip-path="url(#clip0_999_1212)">
@@ -26,9 +28,9 @@ export const invitationIconXml = `
 </clipPath>
 </defs>
 </svg>
-`;
+`);
 
-export const noEventsIconXml = `
+export const noEventsIconXml = Skia.SVG.MakeFromString(`
 <svg width="102" height="101" viewBox="0 0 102 101" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M101.5 50.5C101.5 78.1096 78.895 100.5 51 100.5C23.105 100.5 0.5 78.1096 0.5 50.5C0.5 22.8904 23.105 0.5 51 0.5C78.895 0.5 101.5 22.8904 101.5 50.5Z" fill="#FFDA78" stroke="#003B95"/>
 <g clip-path="url(#clip0_999_1213)">
@@ -58,4 +60,4 @@ export const noEventsIconXml = `
 </clipPath>
 </defs>
 </svg>
-`;
+`);

@@ -98,7 +98,6 @@ const PreviewModal = ({ visible, onClose, onSave, capturedImage }) => {
                     },
                   ]}
                 >
-                  {/* Replace this with your image rendering */}
                   <PreviewComponent />
                 </View>
               )}

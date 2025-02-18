@@ -21,10 +21,14 @@ import { CanvasElement } from "./elements";
 import { ElementStyleSheet } from "./modals/element-options";
 import { ImageEditSheet } from "./modals/image-editor";
 import PreviewModal from "../PreviewModal";
+import { useUser } from "../../context";
+import { useRouter } from "expo-router";
+import { uploadImage } from "../../helpers";
 
 const PREVIEW_PADDING = 32;
 const StudioContent = () => {
   const { state, dispatch } = useStudio();
+  const { token } = useUser();
   const [isTextModalVisible, setIsTextModalVisible] = useState(false);
   const [isShapesModalVisible, setIsShapesModalVisible] = useState(false);
   const [isColorPickerVisible, setIsColorPickerVisible] = useState(false);
@@ -39,6 +43,7 @@ const StudioContent = () => {
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
 
+  const router = useRouter();
   const canvasRef = useRef(null);
 
   // Load background image using Skia's useImage hook
@@ -157,15 +162,64 @@ const StudioContent = () => {
     // Handle delete action
     dispatch({ type: "REMOVE_ELEMENT", payload: elementId });
   };
+  const saveDesignToStore = async () => {
+    console.log(state.designId);
+
+    // Navigate to the /add/templates/[id]/event-details.jsx route
+    router.push(`add/templates/${state.designId}/event-details`);
+  };
 
   const handleSave = async () => {
-    if (canvasRef.current) {
-      console.log("Saving image...");
+    if (!canvasRef.current) {
+      Alert.alert("Error", "Canvas reference is not available");
+      return null;
+    }
 
+    try {
+      // Capture snapshot
       const snapshot = await makeImageFromView(canvasRef);
-      setCapturedImage(snapshot);
-      setIsPreviewModalVisible(true);
-      console.log(snapshot);
+      // Prepare form data with uploaded image filename
+      const formData = new FormData();
+      formData.append("category_id", "3");
+      formData.append("image", state.backgroundImage.split("/")[4]);
+      formData.append("title", `Design ${new Date().toLocaleDateString()}`);
+
+      const response = await fetch(
+        "https://hala-qr.jmintel.net/api/v1/designs/store",
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+          timeout: 10000, // 10-second timeout
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save design");
+      }
+
+      const data = await response.json();
+      const designId = data?.data?.design?.id;
+      console.log("Saved design ID:", designId);
+
+      // Dispatch with additional error handling
+      if (designId) {
+        dispatch({ type: "SAVE_DESIGN_ID", payload: designId });
+        setCapturedImage(snapshot);
+        setIsPreviewModalVisible(true);
+        return designId;
+      }
+    } catch (error) {
+      console.error("Error saving design:", error);
+      Alert.alert(
+        "Save Error",
+        error.message || "An unexpected error occurred",
+      );
+      return null;
     }
   };
 
@@ -269,7 +323,7 @@ const StudioContent = () => {
       <PreviewModal
         visible={isPreviewModalVisible}
         onClose={() => setIsPreviewModalVisible(false)}
-        onSave={handleSave}
+        onSave={saveDesignToStore}
         capturedImage={capturedImage}
         previewDimensions={{
           width: Dimensions.get("window").width - 2 * PREVIEW_PADDING,
@@ -284,9 +338,7 @@ export const InvitationStudio = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <FiberProvider>
-        <StudioProvider>
-          <StudioContent />
-        </StudioProvider>
+        <StudioContent />
       </FiberProvider>
     </GestureHandlerRootView>
   );

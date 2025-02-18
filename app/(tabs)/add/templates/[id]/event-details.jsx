@@ -11,7 +11,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import DateTimePicker from "@react-native-community/datetimepicker";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Link, useLocalSearchParams } from "expo-router";
-import { useStudio } from "../../../../../context";
+import { useStudio } from "../../../../../components/studio/context";
 
 const EventDetailsForm = () => {
   const { state, setInvitationDetails } = useStudio();
@@ -240,7 +240,7 @@ const EventDetailsForm = () => {
             <Link
               style={styles.nextButton}
               href={{
-                pathname: `/add/templates/[id]/event-preview`,
+                pathname: `/add/templates/${state.designId}/event-preview`,
                 params: { id: "new" },
               }}
             >

@@ -1,191 +1,338 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "@/components/linearGradient";
-import { invitationIconXml, noEventsIconXml } from "@/assets/svg/icons.js";
 import { Link } from "expo-router";
-import { SvgXml } from "react-native-svg";
+import { Canvas, ImageSVG } from "@shopify/react-native-skia";
 import { useTranslation } from "react-i18next";
+import { useUser } from "../../context";
+import { invitationIconXml, noEventsIconXml } from "../../assets/svg/icons";
 
 const HomeScreen = () => {
   const { t } = useTranslation();
-  const userName = "Mahmoud";
+  const { user, token } = useUser();
+  const userName = user?.f_name;
+  const [events, setEvents] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchUserData = async () => {
+    try {
+      setIsLoading(true);
+      // Fetch events
+      const eventsResponse = await fetch(
+        "https://hala-qr.jmintel.net/api/v1/events/index",
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Accept-Language": "en",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      const eventsData = await eventsResponse.json();
+
+      // Fetch invitations
+      const invitationsResponse = await fetch(
+        "https://hala-qr.jmintel.net/api/v1/invitations/index",
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Accept-Language": "en",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      const invitationsData = await invitationsResponse.json();
+
+      // Update state
+      if (eventsData.status && eventsData.data.events) {
+        setEvents(eventsData.data.events);
+      }
+
+      if (invitationsData.status && invitationsData.data.invitations) {
+        setInvitations(invitationsData.data.invitations);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchUserData();
+    }
+  }, [token]);
+
+  const renderInvitationsContent = () => {
+    if (isLoading) return null;
+
+    if (invitations.length === 0) {
+      return (
+        <View style={styles.invitationsCard}>
+          <View style={styles.iconContainer}>
+            <Canvas style={styles.canvas}>
+              <ImageSVG
+                svg={invitationIconXml}
+                x={0}
+                y={0}
+                width={20}
+                height={20}
+              />
+            </Canvas>
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.cardTitle}>{t("noInvitations")}</Text>
+            <Text style={styles.cardSubtext}>{t("noInvitationsText")}</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Render invitations if available
+    return invitations.map((invitation) => (
+      <View key={invitation.id} style={styles.invitationsCard}>
+        <Image
+          source={{ uri: invitation.design.image }}
+          style={styles.invitationImage}
+        />
+        <View style={styles.textContainer}>
+          <Text style={styles.cardTitle}>{invitation.title}</Text>
+          <Text style={styles.cardSubtext}>{invitation.description}</Text>
+        </View>
+      </View>
+    ));
+  };
+
+  const renderEventsContent = () => {
+    if (isLoading) return null;
+
+    if (events.length === 0) {
+      return (
+        <View style={styles.eventsCard}>
+          <View style={styles.iconContainer}>
+            <Canvas style={styles.canvas}>
+              <ImageSVG
+                svg={noEventsIconXml}
+                x={0}
+                y={0}
+                width={20}
+                height={20}
+              />
+            </Canvas>
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.cardTitle}>{t("noEvents")}</Text>
+            <Text style={styles.cardSubtext}>{t("noEventsText")}</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Render events if available
+    return events.map((event) => (
+      <View key={event.id} style={styles.eventsCard}>
+        <Image source={{ uri: event.design.image }} style={styles.eventImage} />
+        <View style={styles.textContainer}>
+          <Text style={styles.cardTitle}>{event.title}</Text>
+          <Text style={styles.eventDescription} numberOfLines={2}>
+            {event.description}
+          </Text>
+          <Text style={styles.cardSubtext}>
+            {event.start_date} | {event.start_time}
+          </Text>
+        </View>
+      </View>
+    ));
+  };
 
   return (
     <GradientBackground>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.welcomeText}>
-            {t("helloUser", { name: userName })}
-          </Text>
-          <Link
-            href="/authModal"
-            style={styles.signInLink}
-          >
-            <Text style={styles.signInText}>{t("signIn")}</Text>
-          </Link>
-        </View>
-
-        <View style={styles.eventPlannerCard}>
-          <Text style={styles.cardText}>{t("allSet")}</Text>
-          <Text style={styles.cardSubtext}>{t("extraordinaryEvents")}</Text>
-          <TouchableOpacity style={styles.planEventButton}>
-            <Text style={styles.planEventButtonText}>{t("planEvent")}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionTitle}>{t("invitations")}</Text>
-        <View style={styles.invitationsCard}>
-          <View style={styles.invitationIconContainer}>
-            <SvgXml xml={invitationIconXml} width={120} height={120} />
-          </View>
-          <View style={styles.invitationTextContainer}>
-            <Text style={styles.invitationTitle}>{t("noInvitations")}</Text>
-            <Text style={styles.invitationSubtext}>
-              {t("noInvitationsText")}
+      <ScrollView>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.welcomeText}>
+              {t("helloUser", { name: userName })}
             </Text>
-          </View>
-        </View>
 
-        <Text style={styles.sectionTitle}>{t("upcomingEvents")}</Text>
-        <View style={styles.eventsCard}>
-          <View style={styles.eventIconContainer}>
-            <SvgXml xml={noEventsIconXml} width={120} height={120} />
+            {user?.avatar ? (
+              <Image
+                source={{ uri: user.avatar }}
+                style={styles.avatarImage}
+                accessibilityLabel="User Avatar"
+              />
+            ) : (
+              <Link href="/authModal" style={styles.signInLink}>
+                <Text style={styles.signInText}>{t("signIn")}</Text>
+              </Link>
+            )}
           </View>
-          <View style={styles.eventTextContainer}>
-            <Text style={styles.eventTitle}>{t("noEvents")}</Text>
-            <Text style={styles.eventSubtext}>{t("noEventsText")}</Text>
+
+          <View style={styles.eventPlannerCard}>
+            <Text style={styles.cardText}>{t("allSet")}</Text>
+            <Text style={styles.cardSubtext}>{t("extraordinaryEvents")}</Text>
+            <TouchableOpacity style={styles.planEventButton}>
+              <Text style={styles.planEventButtonText}>{t("planEvent")}</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </SafeAreaView>
+
+          <Text style={styles.sectionTitle}>{t("invitations")}</Text>
+          {renderInvitationsContent()}
+
+          <Text style={styles.sectionTitle}>{t("upcomingEvents")}</Text>
+          {renderEventsContent()}
+        </SafeAreaView>
+      </ScrollView>
     </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  invitationImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 16,
+  },
+  eventImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 16,
+  },
   safeArea: {
     flex: 1,
-    paddingTop: 16,
-    marginHorizontal: 'auto',
-    width: '91.666667%',
+    paddingVertical: 24,
+    marginHorizontal: "auto",
+    width: "91.666667%",
+  },
+  eventDescription: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 4,
   },
   headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
   },
   welcomeText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontWeight: "bold",
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   signInLink: {
     borderWidth: 1,
-    borderColor: '#1E3A8A',
-    backgroundColor: 'white',
+    borderColor: "#1E3A8A",
+    backgroundColor: "white",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   signInText: {
-    color: 'black',
+    color: "black",
   },
   eventPlannerCard: {
-    marginTop: 16,
-    shadowColor: '#000',
+    marginBottom: 32,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+    padding: 24,
   },
   cardText: {
-    marginBottom: 8,
+    fontSize: 16,
+    marginBottom: 12,
   },
   cardSubtext: {
-    marginBottom: 16,
+    fontSize: 14,
+    marginBottom: 20,
+    color: "#6B7280",
   },
   planEventButton: {
-    width: '50%',
+    width: "50%",
     borderWidth: 1,
-    borderColor: '#1E3A8A',
-    backgroundColor: '#FDE047',
-    paddingVertical: 8,
+    borderColor: "#1E3A8A",
+    backgroundColor: "#FDE047",
+    paddingVertical: 12,
     paddingHorizontal: 16,
+    marginTop: 8,
     borderRadius: 8,
   },
   planEventButtonText: {
-    textAlign: 'center',
-    fontWeight: '600',
+    textAlign: "center",
+    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 16,
   },
   invitationsCard: {
-    shadowColor: '#000',
+    marginBottom: 32,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  invitationIconContainer: {
-    flex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-  },
-  invitationTextContainer: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  },
-  invitationTitle: {
-    fontWeight: '600',
-    fontSize: 18,
-    marginBottom: 8,
-  },
-  invitationSubtext: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    padding: 24,
+    flexDirection: "row",
+    alignItems: "center",
   },
   eventsCard: {
-    shadowColor: '#000',
+    marginBottom: 12,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 24,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  eventIconContainer: {
+  iconContainer: {
+    width: 120,
+    height: 120,
+    marginRight: 16,
+  },
+  canvas: {
+    width: 120,
+    height: 120,
+  },
+  textContainer: {
     flex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
   },
-  eventTextContainer: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontWeight: '600',
+  cardTitle: {
+    fontWeight: "600",
     fontSize: 18,
     marginBottom: 8,
   },
-  eventSubtext: {
-    fontSize: 12,
-    color: '#9CA3AF',
+  cardSubtext: {
+    fontSize: 14,
+    color: "#6B7280",
   },
 });
 

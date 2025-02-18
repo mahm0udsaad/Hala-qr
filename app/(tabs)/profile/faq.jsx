@@ -9,11 +9,13 @@ import {
 import RenderHtml from "react-native-render-html";
 import useFetch from "../../../hooks/use-fetch";
 import { useWindowDimensions } from "react-native";
+import { useTranslation } from "react-i18next";
 
 const FaqScreen = () => {
   const { data, isLoading, error } = useFetch("/faqs");
   const { width } = useWindowDimensions();
-
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
   if (isLoading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
@@ -23,14 +25,16 @@ const FaqScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[styles.container, isRTL && { direction: "rtl" }]}
+    >
       {data.map((faq) => (
         <View key={faq.id} style={styles.card}>
           <Text style={styles.title}>{faq.title}</Text>
           <RenderHtml
             contentWidth={width}
             source={{ html: faq.description }}
-            baseStyle={styles.description}
+            baseStyle={[styles.description, isRTL && { direction: "rtl" }]} // Right-align text for RTL languages
           />
         </View>
       ))}

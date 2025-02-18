@@ -1,5 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   View,
@@ -8,22 +6,39 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
+  Dimensions,
 } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import GradientBackground from "@/components/linearGradient";
+import useFetch from "../../../../hooks/use-fetch";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const getResponsiveWidth = (baseWidth) => {
+  const scaleFactor = SCREEN_WIDTH / 375;
+  return Math.min(baseWidth * scaleFactor, baseWidth * 1.3);
+};
 
 export default function GoPremiumScreen() {
-  const [selectedPackage, setSelectedPackage] = useState("Platinum");
+  const { t, i18n } = useTranslation();
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const { data, isLoading } = useFetch("/packages/index");
   const router = useRouter();
 
-  const packages = [
-    { name: "Platinum", price: "$999/Month", valueTag: "Best Value" },
-    { name: "Gold", price: "$99/Month", valueTag: "" },
-    { name: "Silver", price: "$9/Month", valueTag: "" },
-  ];
+  const packages = data || [];
+  const isRTL = i18n.language === "ar";
 
   return (
     <GradientBackground>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { maxWidth: getResponsiveWidth(450), alignSelf: "center" },
+        ]}
+      >
         <View style={styles.closeButtonContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -33,13 +48,9 @@ export default function GoPremiumScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Title and Image */}
         <View style={styles.centerContent}>
-          <Text style={styles.title}>Go Premium</Text>
-          <Text style={styles.subtitle}>
-            Unlock all the power of this mobile tool and enjoy a digital
-            experience like never before!
-          </Text>
+          <Text style={styles.title}>{t("premium.title")}</Text>
+          <Text style={styles.subtitle}>{t("premium.subtitle")}</Text>
           <Image
             source={require("@/assets/images/premium.png")}
             style={styles.image}
@@ -47,155 +58,267 @@ export default function GoPremiumScreen() {
           />
         </View>
 
-        {/* Pricing Options */}
-        <View style={styles.pricingContainer}>
-          {packages.map((pkg) => (
-            <TouchableOpacity
-              key={pkg.name}
-              onPress={() => setSelectedPackage(pkg.name)}
-              style={[
-                styles.packageOption,
-                selectedPackage === pkg.name && styles.selectedPackageOption,
-              ]}
-            >
-              <View>
-                <Text
-                  style={[
-                    styles.packageName,
-                    selectedPackage === pkg.name && styles.selectedText,
-                  ]}
-                >
-                  {pkg.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.packagePrice,
-                    selectedPackage === pkg.name && styles.selectedText,
-                  ]}
-                >
-                  {pkg.price}
-                </Text>
-              </View>
-              {pkg.valueTag ? (
-                <View style={styles.valueTag}>
-                  <Text style={styles.valueTagText}>{pkg.valueTag}</Text>
+        <View style={styles.packagesContainer}>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#003B95" />
+            </View>
+          ) : packages.length === 0 ? (
+            <View style={styles.noPackagesContainer}>
+              <Text style={styles.noPackagesText}>
+                {t("premium.noPackages")}
+              </Text>
+            </View>
+          ) : (
+            packages.map((pkg) => (
+              <TouchableOpacity
+                key={pkg.id}
+                onPress={() => setSelectedPackage(pkg)}
+                style={[
+                  styles.packageCard,
+                  selectedPackage?.name === pkg?.name &&
+                    styles.selectedPackageCard,
+                  { width: getResponsiveWidth(320), alignSelf: "center" },
+                ]}
+              >
+                <View style={styles.packageContent}>
+                  <View style={[styles.packageHeader, isRTL && styles.rtlRow]}>
+                    <Text style={styles.packageName}>{pkg.name}</Text>
+                    <Text style={styles.packagePrice}>${pkg.price}</Text>
+                  </View>
+
+                  <View style={styles.packageDetails}>
+                    <PackageDetailItem
+                      label={t("package.oldPrice")}
+                      value={`$${pkg.old_price}`}
+                      isRTL={isRTL}
+                    />
+                    <PackageDetailItem
+                      label={t("package.designs")}
+                      value={pkg.num_designs}
+                      isRTL={isRTL}
+                    />
+                    <PackageDetailItem
+                      label={t("package.invitations")}
+                      value={pkg.num_of_invitations}
+                      isRTL={isRTL}
+                    />
+                    <PackageDetailItem
+                      label={t("package.designPrice")}
+                      value={`$${pkg.design_price}`}
+                      isRTL={isRTL}
+                    />
+                    <PackageDetailItem
+                      label={t("package.invitationPrice")}
+                      value={`$${pkg.invitation_price}`}
+                      isRTL={isRTL}
+                    />
+                    <PackageDetailItem
+                      label={t("package.duration")}
+                      value={`${pkg.num_of_days} ${t("premium.days")}`}
+                      isRTL={isRTL}
+                    />
+                  </View>
                 </View>
-              ) : null}
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
-        {/* CTA Button */}
         <TouchableOpacity
-          onPress={() => router.push("/profile/payment-info/payment-details")}
+          disabled={!selectedPackage}
+          onPress={() =>
+            router.push({
+              pathname: "/profile/payment-info/payment-details",
+              params: {
+                package: encodeURIComponent(JSON.stringify(selectedPackage)),
+              },
+            })
+          }
           style={styles.ctaButton}
         >
-          <Text style={styles.ctaButtonText}>Start 30-day now</Text>
+          <Text style={styles.ctaButtonText}>
+            {selectedPackage
+              ? `${t("premium.cta")} ${selectedPackage.num_of_days} ${t("day")}`
+              : t("premium.cta_default")}
+          </Text>
         </TouchableOpacity>
 
-        {/* Terms and Conditions */}
         <Text style={styles.termsText}>
-          By placing this order, you agree to the{" "}
-          <Text style={styles.underlineText}>Terms of Service</Text> and{" "}
-          <Text style={styles.underlineText}>Privacy Policy</Text>. Subscription
-          automatically renews unless auto-renew is turned off at least 24 hours
-          before the end of the current period.
+          {t("premium.terms", {
+            terms: t("premium.terms.service"),
+            privacy: t("premium.privacy.policy"),
+          })}
         </Text>
       </ScrollView>
     </GradientBackground>
   );
 }
 
+const PackageDetailItem = ({ label, value, isRTL }) => (
+  <View style={[styles.packageDetailItem, isRTL && styles.rtlRow]}>
+    <Text
+      style={[
+        styles.packageDetailLabel,
+        isRTL ? { textAlign: "left" } : { textAlign: "right" },
+      ]}
+    >
+      {label}
+    </Text>
+    <Text
+      style={[
+        styles.packageDetailValue,
+        isRTL ? { textAlign: "right" } : { textAlign: "left" },
+      ]}
+    >
+      {value}
+    </Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    padding: 24, // Tailwind's `p-6`
+    padding: 24,
   },
-  closeButtonContainer: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingVertical: 16, // Tailwind's `py-4`
+    justifyContent: "between",
+    marginBottom: 24,
+    width: "100%",
   },
-  iconButton: {
-    padding: 8, // Tailwind's `p-2`
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#003B95",
+  },
+  packagesContainer: {
+    flex: 1,
+    marginBottom: 24,
+  },
+  packageCard: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 12,
+    marginBottom: 16,
+    padding: 16,
+  },
+  selectedPackageCard: {
+    borderColor: "#003B95",
+    backgroundColor: "#F3F4F6",
+  },
+  packageContent: {
+    flexDirection: "column",
+    width: "100%",
+  },
+  packageHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    width: "100%",
+  },
+  rtlRow: {
+    flexDirection: "row-reverse",
+  },
+  packageName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#374151",
+  },
+  packagePrice: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#003B95",
+  },
+  packageDetails: {
+    flexDirection: "column",
+    width: "100%",
+  },
+  packageDetailItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#D1D5DB",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
+    width: "100%",
+  },
+  packageDetailLabel: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  packageDetailValue: {
+    color: "#374151",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  ctaButton: {
+    backgroundColor: "#003B95",
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  ctaButtonText: {
+    color: "white",
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  termsText: {
+    color: "#6B7280",
+    fontSize: 12,
+    textAlign: "center",
+  },
+  underlineText: {
+    textDecorationLine: "underline",
+    color: "#003B95",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  noPackagesContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  noPackagesText: {
+    fontSize: 16,
+    color: "#6B7280",
   },
   centerContent: {
     alignItems: "center",
-  },
-  title: {
-    fontSize: 24, // Tailwind's `text-2xl`
-    fontWeight: "bold", // Tailwind's `font-bold`
-    color: "#003b95", // Tailwind's `text-blue-800`
-    marginBottom: 8, // Tailwind's `mb-2`
-  },
-  subtitle: {
-    color: "#6B7280", // Tailwind's `text-gray-500`
-    textAlign: "center",
-    marginBottom: 24, // Tailwind's `mb-6`
+    marginBottom: 24,
   },
   image: {
-    width: 168, // Tailwind's `size-42`
-    height: 168,
-    marginBottom: 24, // Tailwind's `mb-6`
+    width: 200,
+    height: 200,
+    marginTop: 16,
   },
-  pricingContainer: {
-    marginBottom: 24, // Tailwind's `mb-6`
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#003B95",
+    textAlign: "center",
   },
-  packageOption: {
+  subtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginHorizontal: 24,
+  },
+  closeButtonContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16, // Tailwind's `p-4`
-    borderWidth: 1, // Tailwind's `border`
-    borderRadius: 8, // Tailwind's `rounded-lg`
-    borderColor: "#D1D5DB", // Tailwind's `border-gray-300`
-    marginBottom: 16, // Tailwind's `mb-4`
+    justifyContent: "flex-end",
+    marginBottom: 16,
   },
-  selectedPackageOption: {
-    borderColor: "#93C5FD", // Tailwind's `border-blue-300`
-    backgroundColor: "#EFF6FF", // Tailwind's `bg-blue-50`
-  },
-  packageName: {
-    fontSize: 18, // Tailwind's `text-lg`
-    fontWeight: "bold", // Tailwind's `font-bold`
-    color: "#374151", // Tailwind's `text-gray-700`
-  },
-  packagePrice: {
-    color: "#374151", // Tailwind's `text-gray-700`
-  },
-  selectedText: {
-    color: "#003b95", // Tailwind's `text-blue-800`
-  },
-  valueTag: {
-    backgroundColor: "#10B981", // Tailwind's `bg-green-500`
-    paddingVertical: 4, // Tailwind's `py-1`
-    paddingHorizontal: 8, // Tailwind's `px-2`
-    borderRadius: 4, // Tailwind's `rounded`
-  },
-  valueTagText: {
-    color: "#FFFFFF", // Tailwind's `text-white`
-    fontSize: 12, // Tailwind's `text-xs`
-  },
-  ctaButton: {
-    backgroundColor: "#003b95", // Tailwind's `bg-[#003b95]`
-    paddingVertical: 16, // Tailwind's `py-4`
-    borderRadius: 8, // Tailwind's `rounded-lg`
-  },
-  ctaButtonText: {
-    textAlign: "center",
-    color: "#FFFFFF", // Tailwind's `text-white`
-    fontWeight: "bold", // Tailwind's `font-bold`
-    fontSize: 18, // Tailwind's `text-lg`
-  },
-  termsText: {
-    color: "#9CA3AF", // Tailwind's `text-gray-400`
-    fontSize: 12, // Tailwind's `text-xs`
-    textAlign: "center",
-    marginVertical: 16, // Tailwind's `my-4`
-    paddingBottom: 40, // Tailwind's `pb-10`
-  },
-  underlineText: {
-    textDecorationLine: "underline", // Tailwind's `underline`
+  iconButton: {
+    padding: 8,
   },
 });
